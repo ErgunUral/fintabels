@@ -8,7 +8,7 @@
   if(!mcp){const n=$("pageNote");n.hidden=false;setNote(n,"Bu görünümde Fintables bağlantısı kullanılamıyor. Sayfayı claude.ai içinde açın ve Fintables bağlayıcısının ekli olduğundan emin olun.");$("qTitle").textContent="Bağlantı yok";return;}
   let last="ASELS";try{const v=localStorage.getItem("hm_last");if(v&&/^[A-Z0-9]{3,6}$/.test(v))last=v;}catch{}
   $("q").value=last;
-  load(last);
+  load(last,false);
   $("mTrain").disabled=false;$("scRun").disabled=false;
   if(ML.res)renderModel();
   refreshWatch();refreshPort();

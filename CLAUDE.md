@@ -30,7 +30,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 
 `src/masa/js/`:
 - `00-giris` durum nesnesi `S` · `01-formatting` pct (yüzde değeri alır), big, istDateTime · `02-fintables-calls` errCopy, call
-- `03-search` arama kutusu · `04-indicators` sma, ema, rsi, macd, boll, atr, stoch, swings · `05-charts` lightweight-charts
+- `03-search` arama kutusu · `04-indicators` sma, ema, rsi, macd, boll, atr, stoch, swings · `05-charts` lightweight-charts · `05a-sekmeler` sekme yapısı (showTab, STOCK_TABS/LIST_TABS; sekme adı = section kimliği)
 - `06-loaders` load(), teknik/temel/analist/KAP yükleyicileri, buildT, computeSignals, finansal özet (BAL_ROWS, balRows) ve kullanıcının beş mali durum göstergesi (finMetrics) · `07-kap-duygu-analizi` · `07a-sahiplik` fon sahipliği ve açığa satış (loadOwn, ownMonths, shortStats)
 - `08-takip-listesi` (`W`, refreshWatch) · `09-kalici-model` gömülü model (`FZ`) · `10-portfoy` (`P`) · `11-bist-30-tarama` (`SC`)
 - `12-ai` Claude yorumu · `13-ml` saf hesap: adjustCorporate, stockFeatures, trainGBDT (erken durdurma döngüsü), lojistik regresyon, runModel, geri test

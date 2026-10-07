@@ -6,7 +6,7 @@ function buildCharts(){
   if(!window.LightweightCharts){$("chartNote").hidden=false;$("chartNote").textContent="Grafik kütüphanesi yüklenemedi; göstergeler yine de sağdaki tabloda.";return null;}
   const L=window.LightweightCharts;
   const mk=(el,h)=>L.createChart(el,{...chartOpts(h),width:el.clientWidth});
-  const main=mk($("chMain"),$("chMain").clientHeight),r=mk($("chRsi"),120),m=mk($("chMacd"),120);
+  const main=mk($("chMain"),$("chMain").clientHeight||380),r=mk($("chRsi"),120),m=mk($("chMacd"),120);
   const C={main,r,m,L};
   C.candle=main.addCandlestickSeries({upColor:css("--up"),downColor:css("--down"),borderVisible:false,wickUpColor:css("--up"),wickDownColor:css("--down")});
   C.vol=main.addHistogramSeries({priceScaleId:"vol",priceFormat:{type:"volume"},lastValueVisible:false,priceLineVisible:false});

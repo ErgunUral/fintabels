@@ -15,8 +15,8 @@
       <button class="btn primary" type="submit">Analiz et</button>
       <div class="sugg" id="sugg" hidden></div>
     </form>
-    <nav class="nav" aria-label="Bölümler">
-      <a href="#portfoy">Portföy</a><a href="#takip">Takip</a><a href="#ai">Yapay Zeka</a><a href="#teknik">Teknik</a><a href="#tarama">BIST 30</a><a href="#model">Model</a><a href="#temel">Temel</a><a href="#analist">Analistler</a><a href="#sahiplik">Sahiplik</a><a href="#kap">KAP</a><a href="https://claude.ai/artifact/CxbqTgjBUvgJusp9uVJgW2" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Strateji Lab ↗</a>
+    <nav class="nav" id="tabs" role="tablist" aria-label="Bölümler">
+      <button type="button" role="tab" data-tab="teknik" aria-selected="false">Teknik</button><button type="button" role="tab" data-tab="temel" aria-selected="false">Temel</button><button type="button" role="tab" data-tab="analist" aria-selected="false">Analistler</button><button type="button" role="tab" data-tab="sahiplik" aria-selected="false">Sahiplik</button><button type="button" role="tab" data-tab="kap" aria-selected="false">KAP</button><button type="button" role="tab" data-tab="model" aria-selected="false">Model</button><button type="button" role="tab" data-tab="ai" aria-selected="false">Yapay zeka</button><span class="tabsep" aria-hidden="true"></span><button type="button" role="tab" data-tab="portfoy" aria-selected="false">Portföy</button><button type="button" role="tab" data-tab="takip" aria-selected="false">Takip</button><button type="button" role="tab" data-tab="tarama" aria-selected="false">BIST 30</button><a href="https://claude.ai/artifact/CxbqTgjBUvgJusp9uVJgW2" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Strateji Lab ↗</a>
     </nav>
   </div>
 </header>
@@ -33,7 +33,7 @@
   </div>
 
   <!-- Portföy -->
-  <section id="portfoy">
+  <section id="portfoy" role="tabpanel">
     <div class="sec-head"><h2>Portföy</h2><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="pill neu" id="pCount"></span><button class="btn" id="pImpBtn" type="button" aria-expanded="false">Toplu içe aktar</button><button class="btn" id="pRefresh" type="button">Güncelle</button></div></div>
     <div class="panel">
       <div class="bulk" id="pImp" hidden>
@@ -57,7 +57,7 @@
   </section>
 
   <!-- Watchlist -->
-  <section id="takip">
+  <section id="takip" role="tabpanel">
     <div class="sec-head"><h2>Takip listesi</h2><div style="display:flex;gap:8px;align-items:center"><span class="pill neu" id="wCount"></span><button class="btn" id="wImpBtn" type="button" aria-expanded="false">Toplu içe aktar</button><button class="btn" id="wRefresh" type="button">Güncelle</button></div></div>
     <div class="panel">
       <div class="bulk" id="wImp" hidden>
@@ -93,7 +93,7 @@
   </section>
 
   <!-- AI -->
-  <section id="ai">
+  <section id="ai" role="tabpanel">
     <div class="ai">
       <div class="ai-head">
         <div><h2>Yapay zeka yorumu</h2><p>Aşağıdaki teknik, temel, analist ve KAP verilerini birlikte okuyup özetler.</p></div>
@@ -106,7 +106,7 @@
   </section>
 
   <!-- Technical -->
-  <section id="teknik">
+  <section id="teknik" role="tabpanel">
     <div class="sec-head"><h2>Teknik analiz</h2><span class="stamp" id="tStamp"></span></div>
     <div class="grid2">
       <div class="panel" style="padding:12px">
@@ -139,7 +139,7 @@
   </section>
 
   <!-- BIST 30 scan -->
-  <section id="tarama">
+  <section id="tarama" role="tabpanel">
     <div class="sec-head"><h2>BIST 30 tarama</h2><div style="display:flex;gap:8px;align-items:center"><span class="stamp" id="scStatus">30 hissenin teknik görünümü tek tabloda</span><button class="btn primary" id="scRun" type="button" disabled>Taramayı çalıştır</button></div></div>
     <div class="prog" id="scProg" hidden><b></b></div>
     <div class="tiles" id="scSum" style="margin-top:10px"><div><div class="lbl">SMA50 üstünde</div><div class="val">—</div><div class="sub">Taramayı çalıştırın</div></div><div><div class="lbl">SMA200 üstünde</div><div class="val">—</div><div class="sub"></div></div><div><div class="lbl">Teknik görünüm</div><div class="val">—</div><div class="sub">Pozitif / nötr / negatif</div></div><div><div class="lbl">Ortalama 1 ay getiri</div><div class="val">—</div><div class="sub"></div></div></div>
@@ -149,7 +149,7 @@
   </section>
 
   <!-- Model -->
-  <section id="model">
+  <section id="model" role="tabpanel">
     <div class="sec-head"><h2>Yön tahmin modeli</h2><span class="stamp" id="mStamp">Henüz eğitilmedi</span></div>
     <div class="panel">
       <p class="m-intro" style="margin-bottom:6px"><b>Not:</b> Aşağıdaki "Kalıcı model" önceden eğitilmiş ve yürüyen pencereyle test edilmiştir; eğitim gerektirmez. Bu bölümdeki eğitilebilir model ise tek bir zaman bölmesiyle test edilir ve tek dönemdeki yüksek AUC şans eseri olabilir. Aynı özelliklerle 6 çeyreklik yürüyen testte kalıcı modelin isabeti %50,8 çıktı.</p>
@@ -219,7 +219,7 @@
   </section>
 
   <!-- Fundamental -->
-  <section id="temel">
+  <section id="temel" role="tabpanel">
     <div class="sec-head"><h2>Temel analiz</h2><span class="stamp" id="fStamp"></span></div>
     <div class="tiles" id="valTiles">
       <div><div class="lbl">F/K</div><div class="val">—</div><div class="sub">Son 12 ay net kâr</div></div>
@@ -250,7 +250,7 @@
   </section>
 
   <!-- Analysts -->
-  <section id="analist">
+  <section id="analist" role="tabpanel">
     <div class="sec-head"><h2>Analist hedef fiyatları</h2><span class="stamp">Kurum başına en güncel rapor, son 6 ay</span></div>
     <div class="tiles" id="anTiles">
       <div><div class="lbl">Ortalama hedef</div><div class="val">—</div><div class="sub"></div></div>
@@ -262,7 +262,7 @@
   </section>
 
   <!-- Sahiplik -->
-  <section id="sahiplik">
+  <section id="sahiplik" role="tabpanel">
     <div class="sec-head"><h2>Fon sahipliği ve açığa satış</h2><span class="stamp" id="ownStamp"></span></div>
     <div class="tiles" id="ownTiles">
       <div><div class="lbl">Hisseyi tutan fon</div><div class="val">—</div><div class="sub"></div></div>
@@ -283,7 +283,7 @@
   </section>
 
   <!-- KAP -->
-  <section id="kap">
+  <section id="kap" role="tabpanel">
     <div class="sec-head"><h2>KAP bildirimleri</h2><button class="btn" id="kapSent" type="button" disabled>Haberleri yapay zekaya puanlat</button></div>
     <div class="panel"><div class="sub" id="kapSum" style="margin-bottom:6px">Son 12 bildirim. Puanlama, her bildirimin metnini okuyup olası etkisini −2 ile +2 arasında değerlendirir.</div><ul class="news" id="news"><li class="skel">Yükleniyor…</li></ul></div>
   </section>

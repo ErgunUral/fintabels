@@ -1,8 +1,10 @@
 /* ---------- loaders ---------- */
 function setNote(el,msg,err){el.innerHTML=`<div class="note ${err?"err":""}">${esc(msg)}</div>`;}
 
-async function load(code){
+/* fromUser: kullanıcı bir hisse seçtiyse ve liste sekmesindeyse son hisse sekmesine dönülür */
+async function load(code,fromUser=true){
   code=String(code).toUpperCase();
+  if(fromUser&&LIST_TABS.includes(TAB.cur))showTab(TAB.stock);
   S.code=code;S.data={code};S.turns=[];
   try{localStorage.setItem("hm_last",code);}catch{}
   $("aiOut").innerHTML="";$("askForm").hidden=true;$("aiRun").disabled=true;

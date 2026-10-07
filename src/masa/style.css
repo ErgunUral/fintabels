@@ -204,3 +204,9 @@ tr:last-child td{border-bottom:0}
   .news li{grid-template-columns:minmax(0,1fr)}
   .nav{order:3;width:100%}
 }
+/* Sekmeler */
+.nav button{padding:6px 12px;border-radius:6px;border:0;background:none;color:var(--muted);font-size:.86rem;font-weight:500;white-space:nowrap;cursor:pointer}
+.nav button:hover{background:var(--surface);color:var(--fg)}
+.nav button[aria-selected="true"]{background:var(--accent);color:var(--surface)}
+.tabsep{flex:none;width:1px;align-self:stretch;margin:4px 6px;background:var(--line)}
+main.wrap>section{margin-top:20px}
