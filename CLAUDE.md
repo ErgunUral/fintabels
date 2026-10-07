@@ -47,7 +47,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 2. Yayın "daha yeni sürüm var" diye reddedilirse sayfa başka yerde değişmiştir. Reddin verdiği kayıtlı dosyayı **okumadan** `node build.mjs --diff <o dosya>` çalıştır; çıkan farkları `src/`'ye işle, tekrar yayınla.
 3. Yayından sonra aşağıdaki sürüm satırını güncelle, commit ve push et.
 
-Son yayın: Masa sürüm 13, Lab sürüm 7 (7 Ekim 2026).
+Son yayın: Masa sürüm 14, Lab sürüm 7 (7 Ekim 2026).
 
 ## Bilinen borçlar
 
