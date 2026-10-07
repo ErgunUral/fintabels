@@ -3,7 +3,7 @@
 function context(){
   const d=S.data,q=d.quote||{};
   return JSON.stringify({hisse:q.hisse_senedi_kodu,unvan:q.unvan,sektor:q.sektor,sonFiyat:q.son_fiyat,gunlukDegisimYuzde:q.gunici_getiri,piyasaDegeri_mrTL:q.piyasa_degeri&&+(q.piyasa_degeri/1e9).toFixed(1),
-    teknik:d.tech||"yok",temel:d.fund||"yok",analistler:d.analyst||"yok",kapBildirimleri:d.kap||"yok",kapDuyguAnalizi:d.kapSent||"yapılmadı",stratejiGeriTesti:d.bt||"yok",bist30Genisligi:S.scan||"tarama yapılmadı",yonTahminModeli:d.model||"eğitilmedi"});
+    teknik:d.tech||"yok",temel:d.fund||"yok",analistler:d.analyst||"yok",fonSahipligiVeAcigaSatis:d.own||"yok",kapBildirimleri:d.kap||"yok",kapDuyguAnalizi:d.kapSent||"yapılmadı",stratejiGeriTesti:d.bt||"yok",bist30Genisligi:S.scan||"tarama yapılmadı",yonTahminModeli:d.model||"eğitilmedi"});
 }
 const RULES=`Sen Borsa İstanbul hisselerini inceleyen deneyimli bir analistsin. Aşağıdaki JSON, Fintables'tan çekilmiş güncel verilerdir; yalnızca bu verilere dayan, veride olmayan rakam veya olay uydurma. Parasal değerler aksi belirtilmedikçe milyar TL (mr TL). Türkçe yaz, sade ve net ol.`;
 let aiCtl=null;
@@ -37,6 +37,7 @@ Görev: Bu hisse için bütünleşik bir değerlendirme yaz. Şu başlıkları "
 ### Teknik tablo (trend, momentum, destek/direnç seviyelerini rakamlarıyla)
 ### Temel tablo (büyüme, kârlılık, borçluluk, değerleme çarpanları)
 ### Analist beklentileri (hedef fiyatlar ve potansiyel)
+### Fon sahipliği ve açığa satış (veride fonSahipligiVeAcigaSatis varsa: fon sayısı ve lot değişimini, açığa satış oranını yorumla; bunun takas verisi olmadığını belirt. Yoksa bu başlığı atla.)
 ### KAP'tan öne çıkanlar (yalnızca anlamlı olanlar; kapDuyguAnalizi varsa puanları kullan)
 ### Yön tahmin modeli (veride yonTahminModeli varsa: olasılığı, test AUC'sini ve baz oranı birlikte yorumla; AUC 0,52'nin altındaysa sinyalin güvenilmez olduğunu açıkça söyle; stratejiGeriTesti varsa model sepetinin piyasaya göre sonucunu da belirt. Model yoksa bu başlığı atla.)
 ### Riskler ve izlenecekler (3-5 madde)

@@ -23,7 +23,7 @@ async function load(code){
   S.data.quote=quote;renderQuote(quote);
   if(S.code!==code)return;
 
-  const jobs=[loadTech(code),loadFund(code),loadAnalyst(code),loadKap(code)];
+  const jobs=[loadTech(code),loadFund(code),loadAnalyst(code),loadKap(code),loadOwn(code)];
   await Promise.allSettled(jobs);
   if(S.code!==code)return;
   renderModelSelected();

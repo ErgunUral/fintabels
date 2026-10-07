@@ -18,7 +18,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 
 ## Komutlar
 
-- `npm test` — derler, 27 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
+- `npm test` — derler, 29 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
 - `npm run build` — `dist/` altına iki HTML üretir.
 - `node build.mjs --diff <dosya>` — bir canlı sürümü derlemeyle karşılaştırır, yalnızca farklı satırları kısaltarak basar.
 
@@ -31,7 +31,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 `src/masa/js/`:
 - `00-giris` durum nesnesi `S` · `01-formatting` pct (yüzde değeri alır), big, istDateTime · `02-fintables-calls` errCopy, call
 - `03-search` arama kutusu · `04-indicators` sma, ema, rsi, macd, boll, atr, stoch, swings · `05-charts` lightweight-charts
-- `06-loaders` load(), teknik/temel/analist/KAP yükleyicileri, buildT, computeSignals · `07-kap-duygu-analizi`
+- `06-loaders` load(), teknik/temel/analist/KAP yükleyicileri, buildT, computeSignals · `07-kap-duygu-analizi` · `07a-sahiplik` fon sahipliği ve açığa satış (loadOwn, ownMonths, shortStats)
 - `08-takip-listesi` (`W`, refreshWatch) · `09-kalici-model` gömülü model (`FZ`) · `10-portfoy` (`P`) · `11-bist-30-tarama` (`SC`)
 - `12-ai` Claude yorumu · `13-ml` saf hesap: adjustCorporate, stockFeatures, trainGBDT (erken durdurma döngüsü), lojistik regresyon, runModel, geri test
 - `14-model-arayuzu` (`ML`), fetchUniverse, modelAge/modelExpired · `15-boot`
@@ -55,4 +55,5 @@ Son yayın: Masa sürüm 12, Lab sürüm 7 (7 Ekim 2026).
 - Eğitim ve geri test ana iş parçacığında çalışır. Web Worker'a almadan önce artifact ortamının Blob'dan Worker'a izin verdiği canlı sayfada denenmeli.
 - `errCopy` ve `call` (yeniden deneme) sayfa başına ayrı; Lab'deki daha dayanıklı.
 - Kalıcı modelin eğitim kodu repoda yok.
+- Takas (MKK) ve aracı kurum dağılımı bağlayıcıda yok (Fintables'ta ayrı ücretli lisans); `07a-sahiplik` bunun yerine fon raporlarını kullanır. Fon raporlarında `ay` boş ya da bozuk (ör. 36) gelebilir, süzülür.
 - Fintables sınırları: sorgu başına 300 satır, günlük kota. TÜFE serisi Ocak 2026'da bitiyor.

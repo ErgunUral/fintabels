@@ -46,3 +46,21 @@ test("btCurves: komisyon yalnızca değişen hisse oranında düşülür", () =>
   near(B.top, (1 + 0.1 - 0.01) * (1 + 0.1 - 0.005) - 1);
   near(B.mkt, 1.05 ** 2 - 1); assert.equal(B.n, 2); assert.equal(B.win, 1);
 });
+
+const O = load(["shared/format.js", "masa/js/07a-sahiplik.js"], ["ownMonths", "shortStats"]);
+
+test("ownMonths: eksik son ay atlanır, bozuk ay değerleri elenir", () => {
+  const rows = [{ yil: 2026, ay: null, fon_sayisi: 48, toplam_lot: 1 }, { yil: 2026, ay: 36, fon_sayisi: 1, toplam_lot: 1 },
+    { yil: 2026, ay: 9, fon_sayisi: 147, toplam_lot: 39e6 }, { yil: 2026, ay: 8, fon_sayisi: 222, toplam_lot: 48e6 }, { yil: 2026, ay: 7, fon_sayisi: 257, toplam_lot: 47e6 }];
+  const r = O.ownMonths(rows, "2026-10-07");
+  assert.equal(r.M.length, 3); assert.equal(r.partial, true); assert.equal(r.cur.ay, 8); assert.equal(r.prev.ay, 7);
+  const late = O.ownMonths(rows, "2026-10-20"); assert.equal(late.partial, false); assert.equal(late.cur.ay, 9);   // rapor dönemi kapandıysa düşüş gerçektir
+  const full = O.ownMonths(rows.slice(3), "2026-10-07"); assert.equal(full.partial, false); assert.equal(full.cur.ay, 8);
+  assert.equal(O.ownMonths([], "2026-01-05").cur, null);
+});
+
+test("shortStats: oran hacim ağırlıklıdır", () => {
+  const s = O.shortStats([{ tarih_europe_istanbul: "2026-10-07T00:00:00.000Z", aciga_satis_hacmi_tl: 30, toplam_islem_hacmi_tl: 100, ortalama_aciga_satis_fiyati: 5 },
+    { tarih_europe_istanbul: "2026-10-06T00:00:00.000Z", aciga_satis_hacmi_tl: 10, toplam_islem_hacmi_tl: 300, ortalama_aciga_satis_fiyati: 5 }]);
+  assert.equal(s.R[0].d, "2026-10-07"); near(s.r5, 10); assert.equal(O.shortStats([]).r5, null);
+});
