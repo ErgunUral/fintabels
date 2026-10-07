@@ -1,5 +1,4 @@
 /* ---------- charts ---------- */
-function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
 function chartOpts(h){return{height:h,layout:{background:{type:"solid",color:css("--surface")},textColor:css("--muted"),fontFamily:"IBM Plex Mono, monospace",fontSize:11},
   grid:{vertLines:{color:css("--line-soft")},horzLines:{color:css("--line-soft")}},rightPriceScale:{borderColor:css("--line")},timeScale:{borderColor:css("--line"),timeVisible:false},
   crosshair:{mode:0},localization:{locale:"tr-TR",priceFormatter:p=>nf(2).format(p)},handleScroll:true,handleScale:true};}

@@ -5,15 +5,10 @@ function segBind(id,key,cast){document.querySelectorAll(`#${id} button`).forEach
   $("mTrain").textContent=ML.res&&(ML.res.H!==ML.H||ML.res.target!==ML.target)?"Bu ayarla eğit":"Modeli eğit";});}
 segBind("mH","H",Number);segBind("mT","target",String);segBind("mM","months",Number);
 function mProg(msg,f){$("mStatus").textContent=msg;const p=$("mProg");p.hidden=f==null;if(f!=null)p.firstElementChild.style.width=Math.round(f*100)+"%";}
-const tick=()=>new Promise(r=>setTimeout(r,0));
 
 /* IndexedDB: günlük veri önbelleği (yalnızca bu tarayıcıda) */
-const idb={db:null,
-  open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open("hisse-masa",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch{res(null);}}));},
-  async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);}catch{res(null);}});},
-  async set(k,v){const d=await this.open();if(!d)return;return new Promise(res=>{try{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res();t.onerror=()=>res();}catch{res();}});},
-  async clearOld(keep){const d=await this.open();if(!d)return;try{const st=d.transaction("kv","readwrite").objectStore("kv");const q=st.getAllKeys();q.onsuccess=()=>q.result.filter(k=>String(k).startsWith("bist100_")&&k!==keep).forEach(k=>st.delete(k));}catch{}}
-};
+//@include shared/idb.js
+const idb=makeIdb("hisse-masa");
 const AUTH_CODES=["server_not_connected","needs_reauth","not_in_manifest","not_granted","consent_required","blocked_by_policy","selection_required","capability_disabled"];
 /* yeniden denemenin anlamsız olduğu hatalar: yetki sorunları ve Fintables günlük kotası */
 const isFatal=e=>AUTH_CODES.includes(e&&e.code)||isQuota(e);
@@ -41,7 +36,7 @@ async function fetchUniverse(months){
   out.sort((a,b)=>a.code<b.code?-1:1);
   await fetchFundamentals(out);
   out.failed=fail;
-  await idb.set(key,{stocks:out.map(s=>({code:s.code,T:s.T,F:s.F})),failed:fail});idb.clearOld(key);
+  await idb.set(key,{stocks:out.map(s=>({code:s.code,T:s.T,F:s.F})),failed:fail});idb.clearOld(key,"bist100_");
   return out;
 }
 /* Temel veriler: yayın tarihiyle birlikte TTM net kâr, TTM satış (bankada faaliyet brüt kârı) ve ana ortaklık özkaynağı */

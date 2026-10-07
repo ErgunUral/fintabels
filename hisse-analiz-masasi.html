@@ -478,19 +478,47 @@ const $=id=>document.getElementById(id);
 const S={code:null, mcp:null, sample:null, data:{}, charts:null, turns:[]};
 
 /* ---------- formatting ---------- */
+/* ---------- ortak: biçimlendirme ve küçük yardımcılar (iki sayfada aynı) ---------- */
 const nf=(d=2)=>new Intl.NumberFormat("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmt=(v,d=2)=>v==null||!isFinite(v)?"—":nf(d).format(v);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* UTC zaman damgasını İstanbul takvim gününe çevirir (YYYY-MM-DD) */
+const istDate=iso=>{const t=Date.parse(iso);return isNaN(t)?null:new Date(t+3*3600e3).toISOString().slice(0,10);};
+/* "YYYY-MM-DD" -> "GG.AA.YYYY"; "YYYY-MM" -> "AA.YYYY" */
+const trDate=d=>{if(!d)return"—";const[y,m,dd]=d.split("-");return dd?`${dd}.${m}.${y}`:`${m}.${y}`;};
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
 const pct=(v,d=1)=>v==null||!isFinite(v)?"—":(v>0?"+":"")+nf(d).format(v)+"%";
 const bn=v=>v==null||!isFinite(v)?"—":nf(1).format(v/1e9);
 function big(v){if(v==null||!isFinite(v))return"—";const a=Math.abs(v);
   if(a>=1e12)return nf(2).format(v/1e12)+" trn TL";if(a>=1e9)return nf(1).format(v/1e9)+" mr TL";if(a>=1e6)return nf(1).format(v/1e6)+" mn TL";return nf(0).format(v)+" TL";}
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const istDate=iso=>{const t=Date.parse(iso);return isNaN(t)?null:new Date(t+3*3600e3).toISOString().slice(0,10);};
-const trDate=d=>{if(!d)return"—";const[y,m,dd]=d.split("-");return `${dd}.${m}.${y}`;};
 const istDateTime=iso=>{const t=Date.parse(iso);if(isNaN(t))return"";const d=new Date(t+3*3600e3).toISOString();return `${trDate(d.slice(0,10))} ${d.slice(11,16)}`;};
 
 /* ---------- Fintables calls ---------- */
+/* ---------- ortak: Fintables sorgu katmanı ----------
+   Sayfa kendi call(tool,input) işlevini tanımlar (yeniden deneme ve önbellek ayarı sayfaya özgüdür);
+   buradaki sql() onu kullanır. Fintables sonucu Markdown tablo metni olarak döner. */
 const isQuota=e=>!!e&&/istek sınırı|sınırına ulaş|daily limit|quota|rate limit exceeded/i.test(String(e.message||"")+" "+String(e.detail||"")+" "+String(e.body||""));
+function parseTable(md){
+  if(!md||typeof md!=="string")return[];
+  const lines=md.split("\n").filter(l=>l.trim().startsWith("|"));
+  if(lines.length<2)return[];
+  const cells=l=>{const s=l.trim();return s.slice(1,s.endsWith("|")?-1:undefined).split("|").map(c=>c.trim());};
+  const head=cells(lines[0]);
+  return lines.slice(2).map(l=>{const c=cells(l);const o={};head.forEach((h,i)=>{const v=c[i];
+    if(v===undefined||v===""){o[h]=null;return;}
+    o[h]=/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(v)?Number(v):(v==="true"?true:v==="false"?false:v);});return o;});
+}
+async function sql(q,purpose){
+  const r=await call("veri_sorgula",{sql:q,purpose});
+  let p=r.payload;
+  if(typeof p==="string"){try{p=JSON.parse(p);}catch{ }}
+  if(p&&typeof p==="object"&&"table" in p)return parseTable(p.table);
+  if(typeof p==="string")return parseTable(p);
+  return[];
+}
+const inList=a=>a.map(s=>"'"+String(s).replace(/'/g,"''")+"'").join(",");
 function errCopy(e){
   const c=e&&e.code;
   if(isQuota(e))return"Fintables günlük sorgu sınırına ulaşıldı (Fintables tarafındaki hesap limiti). Yarın yeniden deneyin.";
@@ -514,25 +542,6 @@ async function call(tool,input){
     throw e;
   }
 }
-function parseTable(md){
-  if(!md||typeof md!=="string")return[];
-  const lines=md.split("\n").filter(l=>l.trim().startsWith("|"));
-  if(lines.length<2)return[];
-  const cells=l=>{const s=l.trim();return s.slice(1,s.endsWith("|")?-1:undefined).split("|").map(c=>c.trim());};
-  const head=cells(lines[0]);
-  return lines.slice(2).map(l=>{const c=cells(l);const o={};head.forEach((h,i)=>{const v=c[i];
-    if(v===undefined||v===""){o[h]=null;return;}
-    o[h]=/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(v)?Number(v):(v==="true"?true:v==="false"?false:v);});return o;});
-}
-async function sql(q,purpose){
-  const r=await call("veri_sorgula",{sql:q,purpose});
-  let p=r.payload;
-  if(typeof p==="string"){try{p=JSON.parse(p);}catch{ }}
-  if(p&&typeof p==="object"&&"table" in p)return parseTable(p.table);
-  if(typeof p==="string")return parseTable(p);
-  return[];
-}
-const inList=a=>a.map(s=>"'"+s.replace(/'/g,"''")+"'").join(",");
 
 /* ---------- search ---------- */
 let sugTimer=null, sugCtl=0;
@@ -587,7 +596,6 @@ function swings(h,l,w=5,look=160){const n=h.length,st=Math.max(w,n-look),hi=[],l
 function cluster(levels,tol){const s=[...levels].sort((a,b)=>a-b),out=[];for(const v of s){const last=out[out.length-1];if(last&&Math.abs(v-last.v)/last.v<tol){last.v=(last.v*last.n+v)/(last.n+1);last.n++;}else out.push({v,n:1});}return out;}
 
 /* ---------- charts ---------- */
-function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
 function chartOpts(h){return{height:h,layout:{background:{type:"solid",color:css("--surface")},textColor:css("--muted"),fontFamily:"IBM Plex Mono, monospace",fontSize:11},
   grid:{vertLines:{color:css("--line-soft")},horzLines:{color:css("--line-soft")}},rightPriceScale:{borderColor:css("--line")},timeScale:{borderColor:css("--line"),timeVisible:false},
   crosshair:{mode:0},localization:{locale:"tr-TR",priceFormatter:p=>nf(2).format(p)},handleScroll:true,handleScale:true};}
@@ -853,7 +861,6 @@ function drawBars(qs){
     b+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${q.lbl}</text>`;});
   $("qBars").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Çeyreklik satış ve net kâr">${g}<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>${b}</svg>`;
 }
-function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
 
 const TAV={al:["AL","pos"],endeks_ustu:["Endeks üstü","pos"],tut:["TUT","neu"],endekse_paralel:["Endekse paralel","neu"],notr:["Nötr","neu"],endeks_alti:["Endeks altı","neg"],sat:["SAT","neg"]};
 async function loadAnalyst(code){
@@ -1178,6 +1185,7 @@ document.querySelectorAll("#scTable th[data-k]").forEach(th=>th.onclick=()=>{con
 $("scRun").onclick=runScan;
 
 /* ---------- AI ---------- */
+/* ---------- ortak: yapay zeka çıktısı için küçük Markdown -> HTML (önce kaçışlanır, sonra biçimlenir) ---------- */
 function mdRender(t){
   const lines=String(t).split("\n");let h="",inList=false;
   const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>");
@@ -1450,15 +1458,18 @@ function segBind(id,key,cast){document.querySelectorAll(`#${id} button`).forEach
   $("mTrain").textContent=ML.res&&(ML.res.H!==ML.H||ML.res.target!==ML.target)?"Bu ayarla eğit":"Modeli eğit";});}
 segBind("mH","H",Number);segBind("mT","target",String);segBind("mM","months",Number);
 function mProg(msg,f){$("mStatus").textContent=msg;const p=$("mProg");p.hidden=f==null;if(f!=null)p.firstElementChild.style.width=Math.round(f*100)+"%";}
-const tick=()=>new Promise(r=>setTimeout(r,0));
 
 /* IndexedDB: günlük veri önbelleği (yalnızca bu tarayıcıda) */
-const idb={db:null,
-  open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open("hisse-masa",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch{res(null);}}));},
+/* ---------- ortak: IndexedDB anahtar-değer deposu (yalnızca bu tarayıcıda; açılamazsa sessizce boş döner) ---------- */
+function makeIdb(name){return{db:null,
+  open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch{res(null);}}));},
   async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);}catch{res(null);}});},
-  async set(k,v){const d=await this.open();if(!d)return;return new Promise(res=>{try{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res();t.onerror=()=>res();}catch{res();}});},
-  async clearOld(keep){const d=await this.open();if(!d)return;try{const st=d.transaction("kv","readwrite").objectStore("kv");const q=st.getAllKeys();q.onsuccess=()=>q.result.filter(k=>String(k).startsWith("bist100_")&&k!==keep).forEach(k=>st.delete(k));}catch{}}
-};
+  /* yazılabildiyse true */
+  async set(k,v){const d=await this.open();if(!d)return false;return new Promise(res=>{try{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>res(false);}catch{res(false);}});},
+  /* prefix ile başlayan anahtarlardan keep dışındakileri siler */
+  async clearOld(keep,prefix){const d=await this.open();if(!d)return;try{const st=d.transaction("kv","readwrite").objectStore("kv");const q=st.getAllKeys();q.onsuccess=()=>q.result.filter(k=>String(k).startsWith(prefix)&&k!==keep).forEach(k=>st.delete(k));}catch{}}
+};}
+const idb=makeIdb("hisse-masa");
 const AUTH_CODES=["server_not_connected","needs_reauth","not_in_manifest","not_granted","consent_required","blocked_by_policy","selection_required","capability_disabled"];
 /* yeniden denemenin anlamsız olduğu hatalar: yetki sorunları ve Fintables günlük kotası */
 const isFatal=e=>AUTH_CODES.includes(e&&e.code)||isQuota(e);
@@ -1486,7 +1497,7 @@ async function fetchUniverse(months){
   out.sort((a,b)=>a.code<b.code?-1:1);
   await fetchFundamentals(out);
   out.failed=fail;
-  await idb.set(key,{stocks:out.map(s=>({code:s.code,T:s.T,F:s.F})),failed:fail});idb.clearOld(key);
+  await idb.set(key,{stocks:out.map(s=>({code:s.code,T:s.T,F:s.F})),failed:fail});idb.clearOld(key,"bist100_");
   return out;
 }
 /* Temel veriler: yayın tarihiyle birlikte TTM net kâr, TTM satış (bankada faaliyet brüt kârı) ve ana ortaklık özkaynağı */

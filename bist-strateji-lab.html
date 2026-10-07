@@ -397,17 +397,45 @@ function makeMLScorer(DB, N, firstTrainMonths=36, onRetrain){
 if(typeof module!=="undefined") module.exports={fwdRet,FACTORS,FKEYS,universeAt,rawFactors,zscores,crossSection,scoreRows,spearman,runBacktest,convertSeries,metrics,yearly,gbTrain,gbScore,makeMLScorer,ML_FEATS,fundAtMonth,monthNext};
 /* ================= UYGULAMA: veri katmanı + arayüz ================= */
 const SERVER="Fintables";
-const $=id=>document.getElementById(id);
+/* ---------- ortak: biçimlendirme ve küçük yardımcılar (iki sayfada aynı) ---------- */
 const nf=(d=2)=>new Intl.NumberFormat("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmt=(v,d=2)=>v==null||!isFinite(v)?"—":nf(d).format(v);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* UTC zaman damgasını İstanbul takvim gününe çevirir (YYYY-MM-DD) */
+const istDate=iso=>{const t=Date.parse(iso);return isNaN(t)?null:new Date(t+3*3600e3).toISOString().slice(0,10);};
+/* "YYYY-MM-DD" -> "GG.AA.YYYY"; "YYYY-MM" -> "AA.YYYY" */
+const trDate=d=>{if(!d)return"—";const[y,m,dd]=d.split("-");return dd?`${dd}.${m}.${y}`:`${m}.${y}`;};
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
+/* ---------- ortak: Fintables sorgu katmanı ----------
+   Sayfa kendi call(tool,input) işlevini tanımlar (yeniden deneme ve önbellek ayarı sayfaya özgüdür);
+   buradaki sql() onu kullanır. Fintables sonucu Markdown tablo metni olarak döner. */
+const isQuota=e=>!!e&&/istek sınırı|sınırına ulaş|daily limit|quota|rate limit exceeded/i.test(String(e.message||"")+" "+String(e.detail||"")+" "+String(e.body||""));
+function parseTable(md){
+  if(!md||typeof md!=="string")return[];
+  const lines=md.split("\n").filter(l=>l.trim().startsWith("|"));
+  if(lines.length<2)return[];
+  const cells=l=>{const s=l.trim();return s.slice(1,s.endsWith("|")?-1:undefined).split("|").map(c=>c.trim());};
+  const head=cells(lines[0]);
+  return lines.slice(2).map(l=>{const c=cells(l);const o={};head.forEach((h,i)=>{const v=c[i];
+    if(v===undefined||v===""){o[h]=null;return;}
+    o[h]=/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(v)?Number(v):(v==="true"?true:v==="false"?false:v);});return o;});
+}
+async function sql(q,purpose){
+  const r=await call("veri_sorgula",{sql:q,purpose});
+  let p=r.payload;
+  if(typeof p==="string"){try{p=JSON.parse(p);}catch{ }}
+  if(p&&typeof p==="object"&&"table" in p)return parseTable(p.table);
+  if(typeof p==="string")return parseTable(p);
+  return[];
+}
+const inList=a=>a.map(s=>"'"+String(s).replace(/'/g,"''")+"'").join(",");
+const $=id=>document.getElementById(id);
 const pct=(v,d=1)=>v==null||!isFinite(v)?"—":(v>0?"+":"")+nf(d).format(v*100)+"%";
 const pctu=(v,d=1)=>v==null||!isFinite(v)?"—":"%"+nf(d).format(v*100);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const istDate=iso=>{const t=Date.parse(iso);return isNaN(t)?null:new Date(t+3*3600e3).toISOString().slice(0,10);};
-const trDate=d=>{if(!d)return"—";const[y,m,dd]=d.split("-");return dd?`${dd}.${m}.${y}`:`${m}.${y}`;};
 const MONTHS_TR=["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
 const mLabel=m=>`${MONTHS_TR[Number(m.slice(5,7))-1]} ${m.slice(0,4)}`;
-const tick=()=>new Promise(r=>setTimeout(r,0));
 const L={mcp:null,sample:null,raw:null,DB:null,res:null,busy:false};
 
 function errCopy(e){const c=e&&e.code;if(isQuota(e))return"Fintables günlük sorgu sınırına ulaşıldı (Fintables tarafındaki hesap limiti). Yarın tekrar basın; inen veri korunur ve kaldığı yerden devam eder.";switch(c){
@@ -422,24 +450,24 @@ function errCopy(e){const c=e&&e.code;if(isQuota(e))return"Fintables günlük so
 const AUTH=["server_not_connected","needs_reauth","not_in_manifest","not_granted","consent_required","blocked_by_policy","selection_required","capability_disabled"];
 const isTimeout=e=>e&&e.code==="tool_error"&&/zaman aşımı|timeout|timed out/i.test(String(e.message||""));
 const isUnsafe=e=>e&&e.code==="tool_error"&&/güvenli|sadeleştir|desteklenen|unsafe|not supported/i.test(String(e.message||""));
-const isQuota=e=>e&&/istek sınırı|sınırına ulaş|daily limit|quota|rate limit exceeded/i.test(String(e.message||"")+" "+String(e.detail||"")+" "+String(e.body||""));
 const splittable=e=>isTimeout(e)||isUnsafe(e);
 async function call(tool,input){const run=()=>L.mcp.callTool(SERVER,tool,input,{cache:{staleTime:60000,gcTime:3600000}});
   for(let k=0;;k++){try{return await run();}catch(e){
     if(e&&e.retryable&&k<1){await new Promise(r=>setTimeout(r,Math.min(e.retryAfterMs||2000,10000)+Math.random()*800));continue;}
     if((isTimeout(e)||(e&&e.code==="upstream_error"&&!isQuota(e)))&&k<1){await new Promise(r=>setTimeout(r,2500+Math.random()*2500));continue;}
     throw e;}}}
-function parseTable(md){if(!md||typeof md!=="string")return[];const lines=md.split("\n").filter(l=>l.trim().startsWith("|"));if(lines.length<2)return[];
-  const cells=l=>{const s=l.trim();return s.slice(1,s.endsWith("|")?-1:undefined).split("|").map(c=>c.trim());};const head=cells(lines[0]);
-  return lines.slice(2).map(l=>{const c=cells(l);const o={};head.forEach((h,i)=>{const v=c[i];o[h]=v===undefined||v===""?null:(/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(v)?Number(v):v);});return o;});}
-async function sql(q,purpose){const r=await call("veri_sorgula",{sql:q,purpose});let p=r.payload;if(typeof p==="string"){try{p=JSON.parse(p);}catch{}}
-  if(p&&typeof p==="object"&&"table" in p)return parseTable(p.table);if(typeof p==="string")return parseTable(p);return[];}
-const inList=a=>a.map(s=>"'"+String(s).replace(/'/g,"''")+"'").join(",");
 
 /* IndexedDB (yalnızca bu tarayıcı) */
-const idb={db:null,open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open("bist-lab",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch{res(null);}}));},
+/* ---------- ortak: IndexedDB anahtar-değer deposu (yalnızca bu tarayıcıda; açılamazsa sessizce boş döner) ---------- */
+function makeIdb(name){return{db:null,
+  open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch{res(null);}}));},
   async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);}catch{res(null);}});},
-  async set(k,v){const d=await this.open();if(!d)return false;return new Promise(res=>{try{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>res(false);}catch{res(false);}});}};
+  /* yazılabildiyse true */
+  async set(k,v){const d=await this.open();if(!d)return false;return new Promise(res=>{try{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>res(false);}catch{res(false);}});},
+  /* prefix ile başlayan anahtarlardan keep dışındakileri siler */
+  async clearOld(keep,prefix){const d=await this.open();if(!d)return;try{const st=d.transaction("kv","readwrite").objectStore("kv");const q=st.getAllKeys();q.onsuccess=()=>q.result.filter(k=>String(k).startsWith(prefix)&&k!==keep).forEach(k=>st.delete(k));}catch{}}
+};}
+const idb=makeIdb("bist-lab");
 
 /* ---------------- VERİ İNDİRME ---------------- */
 const START_M="2014-07", START_UTC="2014-06-30 21:00:00";
@@ -630,8 +658,6 @@ async function runTest(){
 $("run").onclick=runTest;
 
 /* ---------------- GRAFİK ---------------- */
-function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
-function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
 function lineChart(el,months,series,{log=false,h=260,area=false,fmtY=v=>pct(v,0)}={}){
   const W=760,H=h,pl=56,pr=12,pt=10,pb=24;const n=months.length;const vals=series.flatMap(s=>s.data.filter(isNum));if(!vals.length){el.innerHTML="";return;}
   let lo=Math.min(...vals),hi=Math.max(...vals);if(area){hi=0;}const tf=log?v=>Math.log(v):v=>v;let a=tf(lo),b=tf(hi);const pad=(b-a)*0.06||0.05;a-=pad;if(!area)b+=pad;
@@ -717,9 +743,19 @@ $("sensRun").onclick=async()=>{
   L.busy=false;$("sensRun").disabled=false;};
 
 /* yapay zeka yorumu */
-function mdRender(t){const lines=String(t).split("\n");let h="",ul=false;const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-  for(const raw of lines){const l=raw.trimEnd();const li=l.match(/^\s*[-*•]\s+(.*)/);if(li){if(!ul){h+="<ul>";ul=true;}h+=`<li>${inl(li[1])}</li>`;continue;}if(ul){h+="</ul>";ul=false;}
-    const hd=l.match(/^#{1,4}\s+(.*)/);if(hd){h+=`<h4>${inl(hd[1])}</h4>`;continue;}if(l.trim())h+=`<p>${inl(l)}</p>`;}if(ul)h+="</ul>";return h;}
+/* ---------- ortak: yapay zeka çıktısı için küçük Markdown -> HTML (önce kaçışlanır, sonra biçimlenir) ---------- */
+function mdRender(t){
+  const lines=String(t).split("\n");let h="",inList=false;
+  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>");
+  for(const raw of lines){const l=raw.trimEnd();
+    const li=l.match(/^\s*[-*•]\s+(.*)/);
+    if(li){if(!inList){h+="<ul>";inList=true;}h+=`<li>${inline(li[1])}</li>`;continue;}
+    if(inList){h+="</ul>";inList=false;}
+    const hd=l.match(/^#{1,4}\s+(.*)/);
+    if(hd){h+=`<h4>${inline(hd[1])}</h4>`;continue;}
+    if(l.trim())h+=`<p>${inline(l)}</p>`;}
+  if(inList)h+="</ul>";return h;
+}
 $("aiRun").onclick=async()=>{
   if(!L.sample||!L.summary)return;const out=$("aiOut");$("aiRun").disabled=true;out.innerHTML=`<div class="thinking"><span class="dot"></span>Sonuçlar değerlendiriliyor…</div>`;
   const prompt=`Sen nicel yatırım stratejileri konusunda deneyimli, şüpheci bir analistsin. Aşağıda Borsa İstanbul üzerinde yapılmış bir geri testin sonuçları var. Türkçe, sade yaz. Yalnızca verilen rakamlara dayan, uydurma.

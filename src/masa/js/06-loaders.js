@@ -198,7 +198,6 @@ function drawBars(qs){
     b+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${q.lbl}</text>`;});
   $("qBars").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Çeyreklik satış ve net kâr">${g}<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>${b}</svg>`;
 }
-function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
 
 const TAV={al:["AL","pos"],endeks_ustu:["Endeks üstü","pos"],tut:["TUT","neu"],endekse_paralel:["Endekse paralel","neu"],notr:["Nötr","neu"],endeks_alti:["Endeks altı","neg"],sat:["SAT","neg"]};
 async function loadAnalyst(code){

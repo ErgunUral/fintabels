@@ -1,6 +1,4 @@
 /* ---------------- GRAFİK ---------------- */
-function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
-function niceStep(r){if(!(r>0))return 1;const p=Math.pow(10,Math.floor(Math.log10(r)));const f=r/p;return(f<=1?1:f<=2?2:f<=5?5:10)*p;}
 function lineChart(el,months,series,{log=false,h=260,area=false,fmtY=v=>pct(v,0)}={}){
   const W=760,H=h,pl=56,pr=12,pt=10,pb=24;const n=months.length;const vals=series.flatMap(s=>s.data.filter(isNum));if(!vals.length){el.innerHTML="";return;}
   let lo=Math.min(...vals),hi=Math.max(...vals);if(area){hi=0;}const tf=log?v=>Math.log(v):v=>v;let a=tf(lo),b=tf(hi);const pad=(b-a)*0.06||0.05;a-=pad;if(!area)b+=pad;

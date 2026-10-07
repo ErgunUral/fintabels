@@ -69,9 +69,7 @@ $("sensRun").onclick=async()=>{
   L.busy=false;$("sensRun").disabled=false;};
 
 /* yapay zeka yorumu */
-function mdRender(t){const lines=String(t).split("\n");let h="",ul=false;const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-  for(const raw of lines){const l=raw.trimEnd();const li=l.match(/^\s*[-*•]\s+(.*)/);if(li){if(!ul){h+="<ul>";ul=true;}h+=`<li>${inl(li[1])}</li>`;continue;}if(ul){h+="</ul>";ul=false;}
-    const hd=l.match(/^#{1,4}\s+(.*)/);if(hd){h+=`<h4>${inl(hd[1])}</h4>`;continue;}if(l.trim())h+=`<p>${inl(l)}</p>`;}if(ul)h+="</ul>";return h;}
+//@include shared/md.js
 $("aiRun").onclick=async()=>{
   if(!L.sample||!L.summary)return;const out=$("aiOut");$("aiRun").disabled=true;out.innerHTML=`<div class="thinking"><span class="dot"></span>Sonuçlar değerlendiriliyor…</div>`;
   const prompt=`Sen nicel yatırım stratejileri konusunda deneyimli, şüpheci bir analistsin. Aşağıda Borsa İstanbul üzerinde yapılmış bir geri testin sonuçları var. Türkçe, sade yaz. Yalnızca verilen rakamlara dayan, uydurma.

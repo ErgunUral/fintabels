@@ -1,16 +1,5 @@
 /* ---------- AI ---------- */
-function mdRender(t){
-  const lines=String(t).split("\n");let h="",inList=false;
-  const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>");
-  for(const raw of lines){const l=raw.trimEnd();
-    const li=l.match(/^\s*[-*•]\s+(.*)/);
-    if(li){if(!inList){h+="<ul>";inList=true;}h+=`<li>${inline(li[1])}</li>`;continue;}
-    if(inList){h+="</ul>";inList=false;}
-    const hd=l.match(/^#{1,4}\s+(.*)/);
-    if(hd){h+=`<h4>${inline(hd[1])}</h4>`;continue;}
-    if(l.trim())h+=`<p>${inline(l)}</p>`;}
-  if(inList)h+="</ul>";return h;
-}
+//@include shared/md.js
 function context(){
   const d=S.data,q=d.quote||{};
   return JSON.stringify({hisse:q.hisse_senedi_kodu,unvan:q.unvan,sektor:q.sektor,sonFiyat:q.son_fiyat,gunlukDegisimYuzde:q.gunici_getiri,piyasaDegeri_mrTL:q.piyasa_degeri&&+(q.piyasa_degeri/1e9).toFixed(1),
