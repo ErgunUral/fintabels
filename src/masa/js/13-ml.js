@@ -1,4 +1,5 @@
 /* ---------- ML: veri seti, özellikler, modeller ---------- */
+//@include shared/sermaye.js
 const FEATS=[["r1","1 günlük getiri"],["r5","5 günlük getiri"],["r20","20 günlük getiri"],["r60","60 günlük getiri"],["pS20","Fiyat / SMA20"],["pS50","Fiyat / SMA50"],["s20s50","SMA20 / SMA50"],["rsi","RSI (14)"],["macdh","MACD histogramı"],["bbB","Bollinger %B"],["atr","ATR / fiyat"],["vol20","20 günlük oynaklık"],["vr","Hacim 5g / 50g"],["pos120","120 günlük aralıkta konum"],["dd120","120 günlük zirveden uzaklık"],["stk","Stokastik %K"],["mr5","Piyasa 5g getirisi"],["mr20","Piyasa 20g getirisi"],["rel20","Piyasaya göre 20g getiri"],["ey","Kazanç getirisi (1/FK)"],["bp","Özkaynak / piyasa değeri"],["grw","Yıllık satış büyümesi"],["roe","Özkaynak kârlılığı"],["fmiss","Temel veri yok"]];
 const NF=FEATS.length;
 
@@ -6,10 +7,8 @@ const NF=FEATS.length;
    sermaye işlemi kabul edilir ve önceki fiyatlar geriye doğru düzeltilir. */
 function adjustCorporate(T){
   const n=T.c.length,o=T.o.slice(),h=T.h.slice(),l=T.l.slice(),c=T.c.slice(),v=T.v.slice();
-  const ev=[];for(let i=1;i<n;i++){const r=c[i]/c[i-1];if(r<0.88||r>1.12)ev.push({i,r});}
-  // sermaye işlemi sayılmayanlar: araya uzun ara girmiş sıçramalar (işlem durması sonrası gerçek fiyat hareketi)
-  // ve 10 işlem günü içinde tersine dönen sıçramalar (veri hatası ya da serbest marjlı gerçek hareket)
-  const ok=ev.filter(e=>(Date.parse(T.t[e.i])-Date.parse(T.t[e.i-1]))/864e5<=10&&!ev.some(x=>x!==e&&Math.abs(x.i-e.i)<=10&&Math.abs(Math.log(x.r*e.r))<0.2));
+  const ev=[];for(let i=1;i<n;i++){const r=c[i]/c[i-1];if(r<0.88||r>1.12)ev.push({i,r,d:T.t[i],pd:T.t[i-1]});}
+  const ok=corporateEvents(ev);
   for(const e of ok){const f=e.r;for(let j=0;j<e.i;j++){o[j]*=f;h[j]*=f;l[j]*=f;c[j]*=f;v[j]/=f;}}
   return{t:T.t,o,h,l,c,v,adj:ok.length};
 }
@@ -76,49 +75,21 @@ function auc(p,y){const o=p.map((v,i)=>[v,y[i]]).sort((a,b)=>a[0]-b[0]);let pos=
   return pos&&neg?(sum-pos*(pos+1)/2)/(pos*neg):0.5;}
 function logloss(p,y){let s=0;for(let i=0;i<p.length;i++){const q=Math.min(1-1e-6,Math.max(1e-6,p[i]));s-=y[i]?Math.log(q):Math.log(1-q);}return s/p.length;}
 
-/* Gradient boosting (histogram, lojistik kayıp) */
-const NB=32;
-function makeEdges(cols,idx){return cols.map(col=>{const v=Array.from(idx,j=>col[j]).sort((a,b)=>a-b);const e=[];for(let k=1;k<NB;k++){const q=v[Math.floor(k*v.length/NB)];if(!e.length||q>e[e.length-1])e.push(q);}return e;});}
-function binCols(cols,edges){return cols.map((col,f)=>{const e=edges[f],b=new Uint8Array(col.length);for(let j=0;j<col.length;j++){let lo=0,hi=e.length;const v=col[j];while(lo<hi){const m=(lo+hi)>>1;if(v<=e[m])hi=m;else lo=m+1;}b[j]=lo;}return b;});}
-function predTree(n,cols,j){while(n.f!==undefined)n=cols[n.f][j]<=n.t?n.l:n.r;return n.v;}
-function buildTree(idx,g,h,bins,edges,feats,depth,o,imp){
-  let G=0,Hs=0;for(const j of idx){G+=g[j];Hs+=h[j];}
-  const leaf={v:-G/(Hs+o.lambda)*o.lr};
-  if(depth>=o.depth||idx.length<2*o.minLeaf)return leaf;
-  const base=G*G/(Hs+o.lambda);let best=null;
-  const hg=new Float64Array(NB),hh=new Float64Array(NB),hc=new Int32Array(NB);
-  for(const f of feats){hg.fill(0);hh.fill(0);hc.fill(0);const b=bins[f];
-    for(const j of idx){const k=b[j];hg[k]+=g[j];hh[k]+=h[j];hc[k]++;}
-    let gl=0,hl=0,cl=0;const nb=edges[f].length;
-    for(let k=0;k<nb;k++){gl+=hg[k];hl+=hh[k];cl+=hc[k];const cr=idx.length-cl;if(cl<o.minLeaf)continue;if(cr<o.minLeaf)break;
-      const gr=G-gl,hr=Hs-hl;const gain=gl*gl/(hl+o.lambda)+gr*gr/(hr+o.lambda)-base;
-      if(gain>o.minGain&&(!best||gain>best.gain))best={gain,f,k};}}
-  if(!best)return leaf;
-  imp[best.f]+=best.gain;
-  const L=[],R=[],b=bins[best.f];for(const j of idx)(b[j]<=best.k?L:R).push(j);
-  return{f:best.f,t:edges[best.f][best.k],l:buildTree(L,g,h,bins,edges,feats,depth+1,o,imp),r:buildTree(R,g,h,bins,edges,feats,depth+1,o,imp)};
-}
+/* Gradyan artırma: çekirdek ortak modülde; burada erken durdurmalı eğitim döngüsü */
+//@include shared/gbdt.js
+function predTree(n,cols,j){return gbWalk(n,f=>cols[f][j]);}
 async function trainGBDT(cols,y,fitIdx,valIdx,o,onTree){
   o=Object.assign({nTrees:300,lr:0.05,depth:3,minLeaf:80,lambda:5,minGain:1e-6,sub:0.7,colsub:0.8,patience:40,seed:7},o);
-  let seed=o.seed;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-  const N=y.length;let pm=0;for(const j of fitIdx)pm+=y[j];pm=Math.min(0.99,Math.max(0.01,pm/fitIdx.length));
-  const base=Math.log(pm/(1-pm));
-  const edges=makeEdges(cols,fitIdx),bins=binCols(cols,edges);
-  const F=new Float64Array(N).fill(base),g=new Float64Array(N),h=new Float64Array(N);
-  const trees=[],imp=new Float64Array(NF),impAt=[];let bestLoss=Infinity,bestN=0;
+  const st=gbStart(cols,y,fitIdx,o),F=st.F,impAt=[];let bestLoss=Infinity,bestN=0;
   for(let m=0;m<o.nTrees;m++){
-    for(const j of fitIdx){const p=sig(F[j]);g[j]=p-y[j];h[j]=Math.max(p*(1-p),1e-6);}
-    const sub=fitIdx.filter(()=>rnd()<o.sub);
-    const feats=[];for(let f=0;f<NF;f++)if(rnd()<o.colsub)feats.push(f);if(!feats.length)feats.push(Math.floor(rnd()*NF));
-    const tr=buildTree(sub,g,h,bins,edges,feats,0,o,imp);trees.push(tr);impAt.push(Float64Array.from(imp));
-    for(let j=0;j<N;j++)F[j]+=predTree(tr,cols,j);
+    st.addTree();impAt.push(Float64Array.from(st.imp));
     if(valIdx&&valIdx.length){let s=0;for(const j of valIdx){const q=Math.min(1-1e-6,Math.max(1e-6,sig(F[j])));s-=y[j]?Math.log(q):Math.log(1-q);}s/=valIdx.length;
       if(s<bestLoss-1e-5){bestLoss=s;bestN=m+1;}else if(m+1-bestN>=o.patience)break;}
     else bestN=m+1;
     if(onTree&&m%5===4)await onTree(m+1,o.nTrees);
   }
   bestN=Math.max(1,bestN);
-  return{trees:trees.slice(0,bestN),base,bestN,imp:impAt[bestN-1]};
+  return{trees:st.trees.slice(0,bestN),base:st.base,bestN,imp:impAt[bestN-1]};
 }
 function predGBDT(model,cols,j){let z=model.base;for(const t of model.trees)z+=predTree(t,cols,j);return sig(z);}
 function predGBDTx(model,x){const cols=Array.from(x,v=>[v]);return predGBDT(model,cols,0);}

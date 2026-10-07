@@ -1,4 +1,5 @@
 /* ---------------- VERİ İNDİRME ---------------- */
+//@include shared/sermaye.js
 const START_M="2014-07", START_UTC="2014-06-30 21:00:00";
 const curMonth=()=>istDate(new Date().toISOString()).slice(0,7);
 function monthsBetween(a,b){const out=[];let m=a;while(m<=b){out.push(m);m=monthNext(m);}return out;}
@@ -113,8 +114,7 @@ function buildDB(raw){
   const evBy={};(raw.events||[]).forEach(e=>{(evBy[e.c]=evBy[e.c]||[]).push(e);});
   for(const c in raw.bars){ if(black.has(c))continue; const b=raw.bars[c];const p=new Float64Array(M).fill(NaN),v=new Float64Array(M).fill(NaN);
     for(const m in b){const i=mi.get(m);if(i==null)continue;p[i]=b[m][0];v[i]=b[m][1];}
-    const evs=(evBy[c]||[]).filter((e,k,arr)=>{const gap=(Date.parse(e.d)-Date.parse(e.pd))/864e5;if(!(gap<=10))return false;
-      return !arr.some(o=>o!==e&&Math.abs(Date.parse(o.d)-Date.parse(e.d))<=14*864e5&&Math.abs(Math.log(o.r*e.r))<0.2);});
+    const evs=corporateEvents(evBy[c]||[]);
     for(const e of evs){const em=e.d.slice(0,7);const ei=mi.get(em);if(ei==null)continue;for(let i=0;i<ei;i++)if(isNum(p[i]))p[i]*=e.r;}
     // veri hatası koruması: ardışık aylarda 4 kattan büyük oynama ya da 0,20 TL altı fiyat
     for(let i=0;i<M;i++){if(isNum(p[i])&&p[i]<0.2)p[i]=NaN;}

@@ -8,7 +8,9 @@ const read = rel => readFileSync(join(root, rel), "utf8");
 
 /** src/ altındaki parçaları sırayla birleştirip çalıştırır, istenen adları döndürür. */
 export function load(files, names, globals = {}) {
-  const src = files.map(f => read(join("src", f))).join("\n");
+  // derlemedeki gibi: "//@include yol" satırları o dosyanın içeriğiyle değişir
+  const expand = s => s.replace(/^\/\/@include (\S+)\n/gm, (_, rel) => expand(read(join("src", rel)) + "\n"));
+  const src = files.map(f => expand(read(join("src", f)))).join("\n");
   const keys = Object.keys(globals);
   return new Function(...keys, `"use strict";\n${src}\nreturn {${names.join(",")}};`)(...keys.map(k => globals[k]));
 }
