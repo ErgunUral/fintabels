@@ -1,7 +1,10 @@
 // İki sayfayı src/ altındaki parçalardan üretir.
-//   node build.mjs          -> kökteki iki HTML dosyasını yazar
-//   node build.mjs --check  -> yazmadan, kökteki dosyalarla aynı mı diye bakar
-import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
+//   node build.mjs                 -> dist/ altına iki HTML dosyasını yazar
+//   node build.mjs --check         -> yazmadan, dist/ ile aynı mı diye bakar
+//   node build.mjs --diff <dosya>  -> bir canlı sürümü (adından sayfa anlaşılır) derlemeyle karşılaştırır;
+//                                     yalnızca farklı satırları, kısaltarak basar
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,10 +33,25 @@ function build(page) {
   return html.replace("/*@css*/\n", () => read(join(dir, "style.css"))).replace("/*@js*/\n", () => js);
 }
 
+const dist = join(root, "dist");
+mkdirSync(dist, { recursive: true });
+
+const di = process.argv.indexOf("--diff");
+if (di > 0) {
+  const other = process.argv[di + 1];
+  const page = /lab/i.test(other) || read(other).includes("<title>BIST Strateji Lab</title>") ? "lab" : "masa";
+  const mine = join(dist, PAGES[page]);
+  writeFileSync(mine, build(page));
+  const r = spawnSync("git", ["diff", "--no-index", "-U0", "--no-color", mine, other], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const lines = r.stdout.split("\n").filter(l => /^[-+@]/.test(l) && !/^(---|\+\+\+) /.test(l));
+  console.log(lines.length ? lines.map(l => l.length > 220 ? l.slice(0, 220) + ` …(+${l.length - 220})` : l).join("\n") : `${PAGES[page]}: fark yok`);
+  process.exit(0);
+}
+
 const check = process.argv.includes("--check");
 let differ = false;
 for (const [page, file] of Object.entries(PAGES)) {
-  const out = build(page), target = join(root, file);
+  const out = build(page), target = join(dist, file);
   if (check) {
     const same = existsSync(target) && read(target) === out;
     console.log(`${file}: ${same ? "aynı" : "FARKLI"}`);

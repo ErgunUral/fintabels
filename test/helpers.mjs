@@ -25,7 +25,7 @@ function stub() {
 
 /** Derlenmiş sayfanın betiğini sahte tarayıcı ortamında yükler; yükleme sırasında hata varsa fırlatır. */
 export function loadPage(file) {
-  const html = read(file);
+  const html = read(join("dist", file));
   const js = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).sort((a, b) => b.length - a.length)[0];
   const s = stub();
   const env = { window: {}, document: s, localStorage: { getItem: () => null, setItem() {} }, indexedDB: s, matchMedia: s,
