@@ -1,0 +1,84 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>BIST Strateji Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/*@css*/
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div><h1>BIST Strateji Lab</h1><p>Faktör ve makine öğrenmesi stratejilerini Borsa İstanbul'un 2014'ten bugüne aylık verisiyle, her ayın gerçek likidite evreni, işlem maliyeti ve yürüyen pencereli testle sınar.</p></div>
+  </div>
+
+  <div class="datacard">
+    <div class="st"><b id="dState">Veri yok</b><div class="sub" id="dSub">İlk kurulumda yaklaşık 630 hissenin 2014'ten bu yana aylık verisi ve finansal tabloları Fintables'tan indirilir (birkaç dakika). Veri bu tarayıcıda saklanır; sonraki güncellemeler saniyeler sürer.</div>
+      <div class="prog" id="dProg" hidden><b></b></div></div>
+    <button class="btn primary" id="dSync" type="button" disabled>Veriyi indir</button>
+  </div>
+
+  <div class="layout">
+    <aside class="panel ctl" id="ctl">
+      <div><span class="lbl">Strateji</span>
+        <div class="strat" id="stratList">
+          <button type="button" data-s="mom" aria-pressed="true"><b>Momentum</b><span>Son 12 ayın (son ay hariç) kazananları</span></button>
+          <button type="button" data-s="lowvol" aria-pressed="false"><b>Düşük oynaklık</b><span>En az dalgalanan hisseler</span></button>
+          <button type="button" data-s="value" aria-pressed="false"><b>Değer</b><span>Düşük F/K ve PD/DD</span></button>
+          <button type="button" data-s="quality" aria-pressed="false"><b>Kalite</b><span>Yüksek özkaynak kârlılığı ve büyüme</span></button>
+          <button type="button" data-s="multi" aria-pressed="false"><b>Çok faktörlü</b><span>Ağırlıkları siz belirleyin</span></button>
+          <button type="button" data-s="ml" aria-pressed="false"><b>Makine öğrenmesi</b><span>Her yıl yeniden eğitilen gradyan artırma</span></button>
+        </div>
+      </div>
+      <div id="wtsBox" hidden><span class="lbl">Faktör ağırlıkları</span><div class="wts" id="wts"></div></div>
+      <div><span class="lbl">Evren (likiditeye göre ilk)</span><div class="seg" id="pN"><button data-v="30">30</button><button data-v="50">50</button><button data-v="100" aria-pressed="true">100</button><button data-v="200">200</button></div></div>
+      <div><span class="lbl">Portföydeki hisse sayısı</span><div class="seg" id="pK"><button data-v="5">5</button><button data-v="10" aria-pressed="true">10</button><button data-v="20">20</button><button data-v="30">30</button></div></div>
+      <div><span class="lbl">Yeniden dengeleme</span><div class="seg" id="pR"><button data-v="1" aria-pressed="true">Aylık</button><button data-v="3">3 ay</button><button data-v="6">6 ay</button></div></div>
+      <div><label class="lbl" for="pC">İşlem maliyeti (alım veya satım başına)</label><select id="pC"><option value="0.001">%0,10</option><option value="0.0025" selected>%0,25 (komisyon + kayma)</option><option value="0.005">%0,50</option><option value="0.01">%1,00</option></select></div>
+      <div><label class="lbl" for="pS">Test başlangıcı</label><select id="pS"></select></div>
+      <div><span class="lbl">Getiri birimi</span><div class="seg" id="pV"><button data-v="nom" aria-pressed="true">TL</button><button data-v="real">Reel (TÜFE)</button><button data-v="usd">USD</button></div></div>
+      <button class="btn primary" id="run" type="button" disabled>Testi çalıştır</button>
+      <div class="sub" id="runMsg"></div>
+    </aside>
+
+    <main id="res">
+      <div class="panel empty" id="resEmpty">Veriyi indirip bir strateji seçin, ardından "Testi çalıştır"a basın.</div>
+      <div id="resBody" hidden>
+        <div class="tiles" id="kpi"></div>
+        <div class="verdict" id="verdict"></div>
+        <div class="panel sec"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><h3>Birikimli getiri (logaritmik)</h3><span class="sub" id="eqSub"></span></div>
+          <div id="eqChart" style="margin-top:8px"></div>
+          <div class="legend"><span><i style="background:var(--s1)"></i>Strateji (maliyet sonrası)</span><span><i style="background:var(--s2)"></i>Eşit ağırlıklı evren</span><span><i style="background:var(--s3)"></i>BIST 100 (fiyat endeksi)</span></div>
+          <h3 style="margin-top:14px">Zirveden düşüş</h3><div id="ddChart" style="margin-top:6px"></div>
+        </div>
+        <div class="grid2 sec">
+          <div class="panel"><h3>Yıllık getiriler</h3><div class="tbl-wrap" style="margin-top:6px"><table><thead><tr><th>Yıl</th><th class="r">Strateji</th><th class="r">Evren</th><th class="r">BIST 100</th><th class="r">Fark (evren)</th></tr></thead><tbody id="yrBody"></tbody></table></div></div>
+          <div class="panel"><h3 id="curTitle">Bugünkü portföy</h3><p class="sub" id="curSub" style="margin:4px 0 8px"></p><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Hisse</th><th class="r">12-1 ay</th><th class="r">Oynaklık</th><th class="r">F/K</th><th class="r">ROE</th></tr></thead><tbody id="curBody"></tbody></table></div></div>
+        </div>
+        <div class="grid2 sec">
+          <div class="panel"><h3>Duyarlılık analizi</h3><p class="sub" style="margin:4px 0 8px">Sonuç tek bir ayara bağlı mı? Evrene göre yıllık fazla getiri (t-istatistiği). Makine öğrenmesinde kapalıdır.</p>
+            <button class="btn" id="sensRun" type="button">Analizi çalıştır</button><div class="tbl-wrap" style="margin-top:8px"><table class="heat" id="sensTbl"></table></div></div>
+          <div class="panel"><h3>Ek ölçümler</h3><div id="extra" class="tbl-wrap" style="margin-top:6px"></div></div>
+        </div>
+        <div class="panel sec"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h3>Yapay zeka değerlendirmesi</h3><button class="btn" id="aiRun" type="button">Sonuçları yorumlat</button></div>
+          <div class="md" id="aiOut" style="margin-top:8px"><p class="sub">Claude, testin sonuçlarını, istatistiksel güvenilirliğini ve risklerini değerlendirir.</p></div></div>
+      </div>
+      <div class="panel sec note">
+        <h3>Yöntem ve bilinen sınırlamalar</h3>
+        <ul>
+          <li><b>Zamanlama:</b> Sinyal ay sonu kapanışında hesaplanır, portföy aynı kapanışta kurulur, getiri bir sonraki ay sonuna kadar ölçülür. Finansal tablolar yalnızca o ay sonuna kadar yayımlanmışsa kullanılır.</li>
+          <li><b>Evren:</b> Her ay, o tarihe kadarki 3 aylık işlem hacmine göre en likit hisseler seçilir; bugünkü endeks listesi geçmişe uygulanmaz. 0,20 TL altı fiyatlar yuvarlama gürültüsü nedeniyle dışarıda tutulur.</li>
+          <li><b>Hayatta kalma yanlılığı:</b> Fintables verisinde borsadan çıkmış hisseler yok. Bu, tüm stratejileri ve eşit ağırlıklı evreni biraz iyimser gösterir; bu yüzden asıl kıyaslama aynı veriden kurulan eşit ağırlıklı evrendir.</li>
+          <li><b>Eksik fiyat:</b> Bir hissenin ertesi ay fiyatı yoksa (işlem durması) getirisi, sonraki ilk fiyata göre o aya yazılır. Fiyatı bir daha gelmeyen ya da veri hatası olarak elenen aylar %0 sayılır; bu, sonucu hafif iyimser gösterebilir.</li>
+          <li><b>BIST 100:</b> Fiyat endeksidir (temettü hariç); hisse verisi temettülere göre düzeltilmiş olabileceğinden BIST 100'e karşı fark yıllık birkaç puan iyimser görünebilir.</li>
+          <li><b>Sermaye işlemleri:</b> Fintables'ın henüz düzeltmediği 2025 sonrası bedelsiz/bölünmeler otomatik düzeltilir; tutarsız seriye sahip hisseler (ör. QNBFK, ISKUR) dışlanır.</li>
+          <li><b>Piyasa değeri:</b> Bugünkü pay sayısı × düzeltilmiş fiyatla yaklaşık hesaplanır; bedelli sermaye artırımları F/K ve PD/DD'yi geçmişte hafif saptırabilir. 2023 sonrası finansallar enflasyon muhasebesine (TMS 29) göredir.</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+</div>
+<script>(function(){"use strict";
+/*@js*/
+})()</script>
+
+</body></html>
