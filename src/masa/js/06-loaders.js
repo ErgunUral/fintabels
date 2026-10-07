@@ -124,7 +124,22 @@ function summarizeTech(T){
 
 const REV=["Satış Gelirleri","FAALİYET BRÜT KÂRI"],NET=["Ana Ortaklık Payları","DÖNEM NET KARI VEYA ZARARI"],EBITDA=["FAVÖK"],GROSS=["Brüt Kar (Zarar)"];
 const EQ=["Ana Ortaklığa Ait Özkaynaklar","ÖZKAYNAKLAR"],TA=["Toplam Varlıklar","VARLIKLAR TOPLAMI"];
-const BAL_ROWS=[["Toplam varlıklar",TA],["Nakit ve benzerleri",["Nakit ve Nakit Benzerleri"]],["Stoklar",["Stoklar"]],["Toplam finansal borç",["Toplam Finansal Borçlar"]],["Net borç",["Net Borç"]],["Özkaynaklar",EQ]];
+/* Finansal özet satırları: [etiket, Fintables kalem adları, kip]. Kip yoksa ilk bulunan kalem; "all" ise hepsi varsa toplamları;
+   "ttm" ise gelir tablosundan son 12 ay değeri (kalem adı yerine çeyrek alanı). Sıra kullanıcının istediği listeye göredir. */
+const BAL_ROWS=[["Dönen varlıklar",["Toplam Dönen Varlıklar"]],["Kısa vadeli yükümlülükler",["Toplam Kısa Vadeli Yükümlülükler"]],["Nakit ve nakit benzerleri",["Nakit ve Nakit Benzerleri"]],
+  ["Finansal yatırımlar",["Finansal Yatırımlar"]],["Finansal borçlar",["Toplam Finansal Borçlar"]],["Toplam varlıklar",TA],
+  ["Toplam yükümlülükler",["Toplam Kısa Vadeli Yükümlülükler","Toplam Uzun Vadeli Yükümlülükler"],"all"],
+  ["FAVÖK (son 12 ay)","ttmEbitda","ttm"],["Net dönem kârı (son 12 ay)","ttmNet","ttm"],
+  ["Özkaynaklar",EQ],["Ödenmiş sermaye",["Ödenmiş Sermaye"]],["Net borç",["Net Borç"]]];
+/* Bilançoda kısa ve uzun vadeli olarak iki kez geçen kalemler toplanır; diğerlerinde son gelen değer alınır. */
+const BAL_SUM=new Set(["Finansal Yatırımlar"]);
+function balMap(rows){const B={};rows.forEach(r=>{const m=B[r.yil]=B[r.yil]||{};
+  if(BAL_SUM.has(r.kalem)){if(r.try_donemsel!=null)m[r.kalem]=(m[r.kalem]||0)+r.try_donemsel;}else m[r.kalem]=r.try_donemsel;});return B;}
+/* cur/prev: o yılın kalem haritası; q/qPrev: son çeyrek ve bir yıl önceki aynı çeyrek (ttm alanları için) */
+function balRows(cur,prev,q,qPrev){
+  const val=(m,qq,[,names,mode])=>mode==="ttm"?(qq&&qq[names]!=null?qq[names]:null):mode==="all"?(names.every(n=>m[n]!=null)?names.reduce((s,n)=>s+m[n],0):null):pick(m,names);
+  return BAL_ROWS.map(row=>({n:row[0],a:val(cur,q,row),b:val(prev,qPrev,row)})).filter(x=>x.a!=null||x.b!=null);
+}
 const pick=(map,names)=>{for(const n of names)if(map[n]!=null)return map[n];return null;};
 
 async function loadFund(code){
@@ -136,7 +151,7 @@ async function loadFund(code){
     $("fStamp").textContent=`Son dönem ${yil}/${String(ay).padStart(2,"0")}${per[0].yayinlanma_tarihi_utc?", yayın "+trDate(istDate(per[0].yayinlanma_tarihi_utc)):""}`;
     $("bCur").textContent=`${String(ay).padStart(2,"0")}/${yil}`;$("bPrev").textContent=`${String(ay).padStart(2,"0")}/${yil-1}`;
     const incNames=[...REV,...NET,...EBITDA,...GROSS];
-    const balNames=[...new Set(BAL_ROWS.flatMap(r=>r[1]))];
+    const balNames=[...new Set(BAL_ROWS.filter(r=>r[2]!=="ttm").flatMap(r=>r[1]))];
     const [inc,bal,rat]=await Promise.all([
       sql(`SELECT yil, ay, kalem, try_ceyreklik, try_ttm FROM hisse_finansal_tablolari_gelir_tablosu_kalemleri WHERE hisse_senedi_kodu = '${code}' AND yil >= ${yil-3} AND kalem IN (${inList(incNames)}) ORDER BY yil, ay LIMIT 120`,`${code} çeyreklik gelir tablosu`),
       sql(`SELECT yil, ay, kalem, try_donemsel FROM hisse_finansal_tablolari_bilanco_kalemleri WHERE hisse_senedi_kodu = '${code}' AND ay = ${ay} AND yil IN (${yil}, ${yil-1}) AND kalem IN (${inList(balNames)}) LIMIT 60`,`${code} bilanço özeti`),
@@ -154,9 +169,10 @@ async function loadFund(code){
     const netTxt=gNet!=null?pct(gNet):!yoQ||yoQ.net==null||lastQ.net==null?"—":lastQ.net>0?"zarardan kâra geçti":lastQ.net>yoQ.net?"zarar azaldı":"zarar büyüdü";
     $("growthNote").textContent=yoQ?`Son çeyrek yıllık: satış ${pct(gRev)}, net kâr ${netTxt}`:"";
     // balance
-    const B={};bal.forEach(r=>{(B[r.yil]=B[r.yil]||{})[r.kalem]=r.try_donemsel;});
+    const B=balMap(bal);
     const cur=B[yil]||{},prev=B[yil-1]||{};
-    $("balBody").innerHTML=BAL_ROWS.map(([n,names])=>{const a=pick(cur,names),b=pick(prev,names);if(a==null&&b==null)return"";
+    const balList=balRows(cur,prev,lastQ,yoQ);
+    $("balBody").innerHTML=balList.map(({n,a,b})=>{
       const ch=a!=null&&b&&b>0?(a/b-1)*100:null;return `<tr><td>${n}</td><td class="r num">${bn(a)}</td><td class="r num">${bn(b)}</td><td class="r num">${pct(ch,0)}</td></tr>`;}).join("")||`<tr><td colspan="4" class="skel">Özet kalemler bu şablonda yok.</td></tr>`;
     // valuation
     const mc=S.data.quote&&S.data.quote.piyasa_degeri;
@@ -178,7 +194,7 @@ async function loadFund(code){
     S.data.fund={donem:`${yil}/${ay}`,sablon:tpl,degerleme:{FK:pe&&+pe.toFixed(1),PDDD:pb&&+pb.toFixed(2),FD_FAVOK:evE&&+evE.toFixed(1),netBorc_ozkaynak_yuzde:ndEq&&+ndEq.toFixed(0),piyasaDegeri_mrTL:mc&&+(mc/1e9).toFixed(1)},
       ceyrekler_mrTL:qs.slice(-6).map(x=>({donem:x.lbl,satis:r1(x.rev),brutKar:r1(x.gross),favok:r1(x.ebitda),netKar:r1(x.net)})),
       son12ay_mrTL:{satis:r1(lastQ.ttmRev),favok:r1(lastQ.ttmEbitda),netKar:r1(lastQ.ttmNet)},yillikBuyume:{satis:gRev!=null?+gRev.toFixed(1):null,netKar:gNet!=null?+gNet.toFixed(1):netTxt},
-      bilanco_mrTL:Object.fromEntries(BAL_ROWS.map(([n,names])=>[n,{son:r1(pick(cur,names)),oncekiYil:r1(pick(prev,names))}])),
+      bilanco_mrTL:Object.fromEntries(balList.map(x=>[x.n,{son:r1(x.a),oncekiYil:r1(x.b)}])),
       oranlar:Object.fromEntries(rat.map(r=>[r.oran,r.deger==null?null:+Number(r.deger).toFixed(2)]))};
   }catch(e){ if(S.code===code){setNote($("qBars"),errCopy(e),true);$("ratios").innerHTML="";$("balBody").innerHTML="";} }
   function r1(v){return v==null?null:+(v/1e9).toFixed(2);}

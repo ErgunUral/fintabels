@@ -18,7 +18,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 
 ## Komutlar
 
-- `npm test` — derler, 29 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
+- `npm test` — derler, 30 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
 - `npm run build` — `dist/` altına iki HTML üretir.
 - `node build.mjs --diff <dosya>` — bir canlı sürümü derlemeyle karşılaştırır, yalnızca farklı satırları kısaltarak basar.
 

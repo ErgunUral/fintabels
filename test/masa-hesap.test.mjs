@@ -64,3 +64,20 @@ test("shortStats: oran hacim ağırlıklıdır", () => {
     { tarih_europe_istanbul: "2026-10-06T00:00:00.000Z", aciga_satis_hacmi_tl: 10, toplam_islem_hacmi_tl: 300, ortalama_aciga_satis_fiyati: 5 }]);
   assert.equal(s.R[0].d, "2026-10-07"); near(s.r5, 10); assert.equal(O.shortStats([]).r5, null);
 });
+
+const B = load(["shared/format.js", "masa/js/06-loaders.js"], ["balMap", "balRows"], { S: {}, $: () => ({}) });
+
+test("finansal özet: çift geçen kalem toplanır, toplam yükümlülük hesaplanır, TTM satırları çeyrekten gelir", () => {
+  const k = (kalem, v, yil = 2026) => ({ yil, kalem, try_donemsel: v });
+  const M = B.balMap([k("Finansal Yatırımlar", null), k("Finansal Yatırımlar", 37), k("Toplam Dönen Varlıklar", 248), k("Toplam Kısa Vadeli Yükümlülükler", 169),
+    k("Toplam Uzun Vadeli Yükümlülükler", 72), k("Ödenmiş Sermaye", 4.56), k("Toplam Dönen Varlıklar", 200, 2025)]);
+  assert.equal(M[2026]["Finansal Yatırımlar"], 37);
+  const rows = B.balRows(M[2026], M[2025], { ttmEbitda: 90, ttmNet: 40 }, { ttmEbitda: 60, ttmNet: null });
+  const get = n => rows.find(r => r.n === n);
+  assert.deepEqual(get("Dönen varlıklar"), { n: "Dönen varlıklar", a: 248, b: 200 });
+  assert.equal(get("Toplam yükümlülükler").a, 241); assert.equal(get("Toplam yükümlülükler").b, null);
+  assert.deepEqual(get("FAVÖK (son 12 ay)"), { n: "FAVÖK (son 12 ay)", a: 90, b: 60 });
+  assert.equal(get("Net dönem kârı (son 12 ay)").b, null);
+  assert.equal(get("Net borç"), undefined);            // veride yoksa satır çıkmaz
+  assert.deepEqual(rows.map(r => r.n).slice(0, 2), ["Dönen varlıklar", "Kısa vadeli yükümlülükler"]);
+});
