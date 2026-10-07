@@ -140,13 +140,28 @@ function balRows(cur,prev,q,qPrev){
   const val=(m,qq,[,names,mode])=>mode==="ttm"?(qq&&qq[names]!=null?qq[names]:null):mode==="all"?(names.every(n=>m[n]!=null)?names.reduce((s,n)=>s+m[n],0):null):pick(m,names);
   return BAL_ROWS.map(row=>({n:row[0],a:val(cur,q,row),b:val(prev,qPrev,row)})).filter(x=>x.a!=null||x.b!=null);
 }
+/* Kullanıcının tanımladığı beş mali durum göstergesi; finansal özet satırlarından (balRows çıktısı) hesaplanır.
+   cur: son dönem, prev: önceki yılın aynı dönemi. Girdisi eksik olan gösterge null döner. */
+function finMetrics(list){
+  const calc=s=>{const v=k=>{const r=list.find(x=>x.n===k);return r?r[s]:null;},has=(...k)=>k.every(x=>v(x)!=null);
+    return{
+      nis:has("Dönen varlıklar","Kısa vadeli yükümlülükler")?v("Dönen varlıklar")-v("Kısa vadeli yükümlülükler"):null,
+      // finansal yatırımı ya da finansal borcu olmayan şirkette o kalem 0 sayılır
+      nakit:has("Nakit ve nakit benzerleri")?v("Nakit ve nakit benzerleri")+(v("Finansal yatırımlar")||0)-(v("Finansal borçlar")||0):null,
+      mali:has("Toplam varlıklar","Toplam yükümlülükler")?v("Toplam varlıklar")-v("Toplam yükümlülükler"):null,
+      // net dönem zararında oran anlamsızdır
+      favok:has("FAVÖK (son 12 ay)","Net dönem kârı (son 12 ay)")&&v("Net dönem kârı (son 12 ay)")>0?v("FAVÖK (son 12 ay)")/v("Net dönem kârı (son 12 ay)"):null,
+      zarar:v("Net dönem kârı (son 12 ay)")!=null&&v("Net dönem kârı (son 12 ay)")<=0,
+      bedelsiz:has("Özkaynaklar","Ödenmiş sermaye")&&v("Ödenmiş sermaye")>0?v("Özkaynaklar")/v("Ödenmiş sermaye"):null};};
+  return{cur:calc("a"),prev:calc("b")};
+}
 const pick=(map,names)=>{for(const n of names)if(map[n]!=null)return map[n];return null;};
 
 async function loadFund(code){
   try{
     const per=await sql(`SELECT yil, ay, finansal_tablo_sablonu, yayinlanma_tarihi_utc FROM hisse_finansal_tablolari WHERE hisse_senedi_kodu = '${code}' ORDER BY yil DESC, ay DESC LIMIT 1`,`${code} son finansal dönem`);
     if(S.code!==code)return;
-    if(!per.length){["qBars","ratios"].forEach(id=>$(id).innerHTML=`<div class="skel">Bu hisse için finansal tablo bulunamadı.</div>`);$("balBody").innerHTML="";return;}
+    if(!per.length){["qBars","ratios"].forEach(id=>$(id).innerHTML=`<div class="skel">Bu hisse için finansal tablo bulunamadı.</div>`);$("balBody").innerHTML="";$("finTiles").innerHTML="";return;}
     const {yil,ay,finansal_tablo_sablonu:tpl}=per[0];
     $("fStamp").textContent=`Son dönem ${yil}/${String(ay).padStart(2,"0")}${per[0].yayinlanma_tarihi_utc?", yayın "+trDate(istDate(per[0].yayinlanma_tarihi_utc)):""}`;
     $("bCur").textContent=`${String(ay).padStart(2,"0")}/${yil}`;$("bPrev").textContent=`${String(ay).padStart(2,"0")}/${yil-1}`;
@@ -174,6 +189,16 @@ async function loadFund(code){
     const balList=balRows(cur,prev,lastQ,yoQ);
     $("balBody").innerHTML=balList.map(({n,a,b})=>{
       const ch=a!=null&&b&&b>0?(a/b-1)*100:null;return `<tr><td>${n}</td><td class="r num">${bn(a)}</td><td class="r num">${bn(b)}</td><td class="r num">${pct(ch,0)}</td></tr>`;}).join("")||`<tr><td colspan="4" class="skel">Özet kalemler bu şablonda yok.</td></tr>`;
+    // mali durum göstergeleri
+    const FM=finMetrics(balList),fc=FM.cur,fp=FM.prev;
+    const fTile=(l,val,sub,col)=>`<div><div class="lbl">${l}</div><div class="val" style="color:${col||"inherit"}">${val}</div><div class="sub">${sub}</div></div>`;
+    const sgn=v=>v>0?"var(--up)":v<0?"var(--down)":"inherit",was=(v,f)=>v==null?"":` · önceki yıl ${f(v)}`,x1=v=>fmt(v,1)+"×",x2=v=>fmt(v,2)+"×";
+    $("finTiles").innerHTML=[fc.nis,fc.nakit,fc.mali,fc.favok,fc.bedelsiz].every(v=>v==null)&&!fc.zarar?`<div style="grid-column:1/-1" class="skel">Bu şablonda (ör. banka) göstergeler için gereken kalemler yok.</div>`:
+      fTile("Net işletme sermayesi",fc.nis!=null?big(fc.nis):"—",(fc.nis==null?"":fc.nis>=0?"Dönen varlıklar kısa vadeli borcu karşılıyor":"Dönen varlıklar kısa vadeli borcu karşılamıyor")+was(fp.nis,big),sgn(fc.nis))+
+      fTile("Nakit durumu",fc.nakit!=null?big(fc.nakit):"—",(fc.nakit==null?"":fc.nakit>=0?"Net nakit fazlası":"Net finansal borç")+was(fp.nakit,big),sgn(fc.nakit))+
+      fTile("Mali yapı",fc.mali!=null?big(fc.mali):"—",(fc.mali==null?"":"Varlıklar − toplam borç")+was(fp.mali,big),sgn(fc.mali))+
+      fTile("FAVÖK / net kâr",fc.favok!=null?x2(fc.favok):"—",(fc.zarar?"Son 12 ayda net zarar var":fc.favok==null?"":"Son 12 ay")+was(fp.favok,x2))+
+      fTile("Bedelsiz potansiyeli",fc.bedelsiz!=null?x1(fc.bedelsiz):"—",(fc.bedelsiz==null?"":"Özkaynak / ödenmiş sermaye")+was(fp.bedelsiz,x1));
     // valuation
     const mc=S.data.quote&&S.data.quote.piyasa_degeri;
     const eq=pick(cur,EQ),nd=pick(cur,["Net Borç"]);
@@ -195,8 +220,9 @@ async function loadFund(code){
       ceyrekler_mrTL:qs.slice(-6).map(x=>({donem:x.lbl,satis:r1(x.rev),brutKar:r1(x.gross),favok:r1(x.ebitda),netKar:r1(x.net)})),
       son12ay_mrTL:{satis:r1(lastQ.ttmRev),favok:r1(lastQ.ttmEbitda),netKar:r1(lastQ.ttmNet)},yillikBuyume:{satis:gRev!=null?+gRev.toFixed(1):null,netKar:gNet!=null?+gNet.toFixed(1):netTxt},
       bilanco_mrTL:Object.fromEntries(balList.map(x=>[x.n,{son:r1(x.a),oncekiYil:r1(x.b)}])),
+      maliDurumGostergeleri:{netIsletmeSermayesi_mrTL:r1(fc.nis),nakitDurumu_mrTL:r1(fc.nakit),maliYapi_mrTL:r1(fc.mali),favokBoluNetKar:fc.favok==null?(fc.zarar?"net zarar":null):+fc.favok.toFixed(2),bedelsizPotansiyeli_ozkaynakBoluSermaye:fc.bedelsiz==null?null:+fc.bedelsiz.toFixed(1)},
       oranlar:Object.fromEntries(rat.map(r=>[r.oran,r.deger==null?null:+Number(r.deger).toFixed(2)]))};
-  }catch(e){ if(S.code===code){setNote($("qBars"),errCopy(e),true);$("ratios").innerHTML="";$("balBody").innerHTML="";} }
+  }catch(e){ if(S.code===code){setNote($("qBars"),errCopy(e),true);$("ratios").innerHTML="";$("balBody").innerHTML="";$("finTiles").innerHTML="";} }
   function r1(v){return v==null?null:+(v/1e9).toFixed(2);}
 }
 

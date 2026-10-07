@@ -65,7 +65,7 @@ test("shortStats: oran hacim ağırlıklıdır", () => {
   assert.equal(s.R[0].d, "2026-10-07"); near(s.r5, 10); assert.equal(O.shortStats([]).r5, null);
 });
 
-const B = load(["shared/format.js", "masa/js/06-loaders.js"], ["balMap", "balRows"], { S: {}, $: () => ({}) });
+const B = load(["shared/format.js", "masa/js/06-loaders.js"], ["balMap", "balRows", "finMetrics"], { S: {}, $: () => ({}) });
 
 test("finansal özet: çift geçen kalem toplanır, toplam yükümlülük hesaplanır, TTM satırları çeyrekten gelir", () => {
   const k = (kalem, v, yil = 2026) => ({ yil, kalem, try_donemsel: v });
@@ -80,4 +80,17 @@ test("finansal özet: çift geçen kalem toplanır, toplam yükümlülük hesapl
   assert.equal(get("Net dönem kârı (son 12 ay)").b, null);
   assert.equal(get("Net borç"), undefined);            // veride yoksa satır çıkmaz
   assert.deepEqual(rows.map(r => r.n).slice(0, 2), ["Dönen varlıklar", "Kısa vadeli yükümlülükler"]);
+});
+
+test("mali durum göstergeleri kullanıcının formüllerine göre hesaplanır", () => {
+  const r = (n, a, b = null) => ({ n, a, b });
+  const list = [r("Dönen varlıklar", 248, 200), r("Kısa vadeli yükümlülükler", 169, 210), r("Nakit ve nakit benzerleri", 39, 30), r("Finansal yatırımlar", 37),
+    r("Finansal borçlar", 73, 40), r("Toplam varlıklar", 549), r("Toplam yükümlülükler", 241), r("FAVÖK (son 12 ay)", 90, 50), r("Net dönem kârı (son 12 ay)", 40, -5),
+    r("Özkaynaklar", 306), r("Ödenmiş sermaye", 4.5)];
+  const { cur, prev } = B.finMetrics(list);
+  assert.equal(cur.nis, 79); assert.equal(cur.nakit, 3); assert.equal(cur.mali, 308); near(cur.favok, 2.25); near(cur.bedelsiz, 68);
+  assert.equal(prev.nis, -10); assert.equal(prev.nakit, -10);        // önceki yılda finansal yatırım yok: 0 sayılır
+  assert.equal(prev.favok, null); assert.equal(prev.zarar, true);    // zararda oran verilmez
+  assert.equal(prev.mali, null); assert.equal(prev.bedelsiz, null);
+  assert.equal(B.finMetrics([]).cur.nis, null);
 });
