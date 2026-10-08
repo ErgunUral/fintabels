@@ -18,7 +18,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 
 ## Komutlar
 
-- `npm test` — derler, 31 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
+- `npm test` — derler, 32 testi çalıştırır (sayfaların hatasız yüklenmesi + hesap fonksiyonları). `test/gbdt-altin` ortak gradyan artırmanın eski iki uygulamayla bire bir aynı model ürettiğini sınar; çekirdeğe dokunursan bu test bilerek kırılır.
 - `npm run build` — `dist/` altına iki HTML üretir.
 - `node build.mjs --diff <dosya>` — bir canlı sürümü derlemeyle karşılaştırır, yalnızca farklı satırları kısaltarak basar.
 
@@ -32,7 +32,7 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 - `00-giris` durum nesnesi `S` · `01-formatting` pct (yüzde değeri alır), big, istDateTime · `02-fintables-calls` errCopy, call
 - `03-search` arama kutusu · `04-indicators` sma, ema, rsi, macd, boll, atr, stoch, swings · `05-charts` lightweight-charts · `05a-sekmeler` sekme yapısı (showTab, STOCK_TABS/LIST_TABS; sekme adı = section kimliği)
 - `06-loaders` load(), teknik/temel/analist/KAP yükleyicileri, buildT, computeSignals, finansal özet (BAL_ROWS, balRows) ve kullanıcının beş mali durum göstergesi (finMetrics) · `07-kap-duygu-analizi` · `07a-sahiplik` fon sahipliği ve açığa satış (loadOwn, ownMonths, shortStats)
-- `08-takip-listesi` (`W`, refreshWatch) · `09-kalici-model` gömülü model (`FZ`) · `10-portfoy` (`P`) · `11-bist-30-tarama` (`SC`)
+- `08-takip-listesi` (`W`, refreshWatch) · `09-kalici-model` gömülü model (`FZ`) · `10-portfoy` (`P`) · `10a-kalici-kayit` portföy ve takip listesini `db` yeteneğiyle kişiye özel yolda saklar (cloudInit, cloudSave, cloudApply) · `11-bist-30-tarama` (`SC`)
 - `12-ai` Claude yorumu · `13-ml` saf hesap: adjustCorporate, stockFeatures, trainGBDT (erken durdurma döngüsü), lojistik regresyon, runModel, geri test
 - `14-model-arayuzu` (`ML`), fetchUniverse, modelAge/modelExpired · `15-boot`
 
@@ -42,6 +42,8 @@ GitHub: `ErgunUral/fintabels` (public). Kullanıcıyla Türkçe konuş.
 - `04-ayarlar` (`ST`) · `05-geri-test` runTest · `06-grafik` lineChart · `07-sonuclar` renderResults, duyarlılık, yapay zeka · `08-baslat`
 
 ## Yayın akışı
+
+Masa'nın yetenek bildirimi: `mcp` (Fintables: veri_sorgula, dokumanlarda_ara, dokuman_chunk_yukle), `sample`, `db`, `user`. Yayında `capabilities` verilmezse saklı bildirim korunur; verilirse **tam liste** yazılmalı (eksik kalan iptal olur). Lab: `mcp` (veri_sorgula), `sample`.
 
 1. `npm test`, sonra `Artifact publish` ile `dist/<dosya>` ve tablodaki `url`.
 2. Yayın "daha yeni sürüm var" diye reddedilirse sayfa başka yerde değişmiştir. Reddin verdiği kayıtlı dosyayı **okumadan** `node build.mjs --diff <o dosya>` çalıştır; çıkan farkları `src/`'ye işle, tekrar yayınla.

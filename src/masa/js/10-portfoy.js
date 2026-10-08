@@ -3,7 +3,7 @@ const pctW=(v,d=1)=>v==null||!isFinite(v)?"—":"%"+nf(d).format(v*100);
 const pctF=(v,d=1)=>v==null||!isFinite(v)?"—":pct(v*100,d);
 const P={pos:[],q:{},sort:{k:"v",dir:-1},at:null};
 try{const v=JSON.parse(localStorage.getItem("hm_port")||"null");if(v&&Array.isArray(v.pos))P.pos=v.pos.filter(x=>x&&/^[A-Z0-9]{3,6}$/.test(x.c)&&x.q>0);}catch{}
-const saveP=()=>{try{localStorage.setItem("hm_port",JSON.stringify({pos:P.pos}));}catch{}};
+const saveP=()=>{try{localStorage.setItem("hm_port",JSON.stringify({pos:P.pos}));}catch{}cloudSave();};
 function trNum(t){t=String(t||"").trim().replace(/[₺%\s]|TL/gi,"");if(!t)return NaN;
   if(/,/.test(t))t=t.replace(/\./g,"").replace(",",".");else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,"");
   const v=Number(t);return isFinite(v)?v:NaN;}

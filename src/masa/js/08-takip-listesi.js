@@ -2,7 +2,7 @@
 const W_MAX=100;
 const W={list:[],rules:{rsiLo:30,rsiHi:70,sma:true,pHi:60,pLo:40}};
 try{const v=JSON.parse(localStorage.getItem("hm_watch")||"null");if(v&&Array.isArray(v.list)){W.list=v.list.filter(c=>/^[A-Z0-9]{3,6}$/.test(c)).slice(0,W_MAX);Object.assign(W.rules,v.rules||{});}}catch{}
-const saveW=()=>{try{localStorage.setItem("hm_watch",JSON.stringify(W));}catch{}};
+const saveW=()=>{try{localStorage.setItem("hm_watch",JSON.stringify(W));}catch{}cloudSave();};
 function syncStar(){const on=W.list.includes(S.code);const b=$("watchBtn");b.textContent=on?"Takipten çıkar":"Takibe al";b.setAttribute("aria-pressed",String(on));}
 $("watchBtn").onclick=()=>{if(!S.code)return;const i=W.list.indexOf(S.code);if(i>=0)W.list.splice(i,1);else W.list.push(S.code);saveW();syncStar();refreshWatch();};
 ["wRsiLo","wRsiHi","wPHi","wPLo"].forEach(id=>{const k={wRsiLo:"rsiLo",wRsiHi:"rsiHi",wPHi:"pHi",wPLo:"pLo"}[id];$(id).value=W.rules[k];$(id).addEventListener("change",e=>{const v=Number(e.target.value);if(isFinite(v)){W.rules[k]=v;saveW();refreshWatch(true);}});});

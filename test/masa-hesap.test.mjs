@@ -94,3 +94,15 @@ test("mali durum göstergeleri kullanıcının formüllerine göre hesaplanır",
   assert.equal(prev.mali, null); assert.equal(prev.bedelsiz, null);
   assert.equal(B.finMetrics([]).cur.nis, null);
 });
+
+test("kalıcı kayıt: hesaptan gelen belge doğrulanarak uygulanır", () => {
+  const P = { pos: [] }, W = { list: [], rules: { rsiLo: 30, rsiHi: 70, sma: true, pHi: 60, pLo: 40 } };
+  const K = load(["masa/js/10a-kalici-kayit.js"], ["cloudApply", "cloudDoc"], { P, W, W_MAX: 3, CLOUD: {}, $: () => null });
+  assert.equal(K.cloudApply(null), false); assert.equal(K.cloudApply({ pos: "x" }), false);
+  assert.equal(K.cloudApply({ pos: [{ c: "ASELS", q: 24, m: 14 }, { c: "bad code", q: 1, m: 1 }, { c: "THYAO", q: 0, m: 5 }],
+    watch: ["ASELS", "ASELS", "<x>", "KCHOL", "TUPRS", "BIMAS"], rules: { rsiLo: 25, sma: false, pHi: "abc" } }), true);
+  assert.deepEqual(P.pos, [{ c: "ASELS", q: 24, m: 14 }]);
+  assert.deepEqual(W.list, ["ASELS", "KCHOL", "TUPRS"]);                 // tekrar ve bozuk kod elenir, üst sınır uygulanır
+  assert.equal(W.rules.rsiLo, 25); assert.equal(W.rules.sma, false); assert.equal(W.rules.pHi, 60);
+  const d = K.cloudDoc(); assert.deepEqual(d.pos, P.pos); assert.deepEqual(d.watch, W.list); assert.equal(d.v, 1);
+});
